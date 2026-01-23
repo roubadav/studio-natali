@@ -1,0 +1,15 @@
+name = "studio-natali-hono"
+main = "src/index.tsx"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+assets = { directory = "./public" }
+
+[vars]
+JWT_SECRET = "studio-natali-secret-key-change-in-production"
+APP_URL = "https://studionatali.cz"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "studio-natali-db"
+database_id = "a9332a2a-84e4-444d-8889-1b78a4b32e31"
