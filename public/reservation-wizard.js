@@ -1,4 +1,11 @@
 // Reservation Wizard (externalized to avoid inline script parsing issues)
+
+// XSS protection: escape HTML entities in user-provided data
+function escapeHTML(str) {
+  if (typeof str !== 'string') return String(str ?? '');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 const wizardConfig = window.__RESERVATION_WIZARD__ || {};
 const bookingWindow = Number.isFinite(wizardConfig.bookingWindow) ? wizardConfig.bookingWindow : 30;
 const preselectedWorkerId = wizardConfig.preselectedWorkerId ?? null;
@@ -25,7 +32,16 @@ const i18n = Object.assign({
   priceNote: '',
   verificationMessage: '',
   atTime: '',
-  backLabel: ''
+  backLabel: '',
+  missingWorker: '',
+  missingServices: '',
+  missingDate: '',
+  missingTime: '',
+  missingContact: '',
+  missingTerms: '',
+  invalidEmail: '',
+  invalidPhone: '',
+  lockExpired: ''
 }, wizardConfig.i18n || {});
 const servicesData = Array.isArray(wizardConfig.servicesData) ? wizardConfig.servicesData : [];
 const monthNames = Array.isArray(wizardConfig.monthNames) ? wizardConfig.monthNames : [];
@@ -41,6 +57,8 @@ let lockToken = null;
 let availabilityDates = new Set();
 let availabilityLoaded = false;
 let reservationCompleted = false;
+let lockExpiresAt = null;
+let lockTimerId = null;
 
 // Client token for lock ownership - persisted in sessionStorage
 function generateUUID() {
@@ -112,6 +130,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Auto-skip step 1 if only one worker is available
+  if (!preselectedWorkerId) {
+    const workerCards = document.querySelectorAll('.worker-card');
+    if (workerCards.length === 1) {
+      const card = workerCards[0];
+      const id = parseInt(card.dataset.workerId, 10);
+      const name = card.dataset.workerName || '';
+      if (!Number.isNaN(id)) {
+        selectWorker(id, name);
+        goToStep(2);
+      }
+    }
+  }
+
   // Input listeners for step 4
   ['customer-name', 'customer-email', 'customer-phone'].forEach(id => {
     const input = document.getElementById(id);
@@ -119,6 +151,48 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   const terms = document.getElementById('terms-accepted');
   if (terms) terms.addEventListener('change', updateNavigation);
+
+  // Inline validation on blur
+  const emailInput = document.getElementById('customer-email');
+  if (emailInput) {
+    emailInput.addEventListener('blur', () => {
+      const val = emailInput.value.trim();
+      if (val && !isValidEmail(val)) {
+        emailInput.classList.add('border-red-500', 'focus:border-red-500');
+        emailInput.classList.remove('border-neutral-200', 'focus:border-primary-500');
+        showFieldError('customer-email', i18n.invalidEmail);
+      } else {
+        emailInput.classList.remove('border-red-500', 'focus:border-red-500');
+        clearFieldError('customer-email');
+      }
+    });
+    emailInput.addEventListener('input', () => {
+      emailInput.classList.remove('border-red-500', 'focus:border-red-500');
+      clearFieldError('customer-email');
+    });
+  }
+
+  const phoneInput = document.getElementById('customer-phone');
+  if (phoneInput) {
+    phoneInput.addEventListener('focus', () => {
+      if (!phoneInput.value) phoneInput.value = '+420 ';
+    });
+    phoneInput.addEventListener('blur', () => {
+      const val = phoneInput.value.trim();
+      if (val && val !== '+420' && val !== '+420 ' && !isValidPhone(val)) {
+        phoneInput.classList.add('border-red-500', 'focus:border-red-500');
+        phoneInput.classList.remove('border-neutral-200', 'focus:border-primary-500');
+        showFieldError('customer-phone', i18n.invalidPhone);
+      } else {
+        phoneInput.classList.remove('border-red-500', 'focus:border-red-500');
+        clearFieldError('customer-phone');
+      }
+    });
+    phoneInput.addEventListener('input', () => {
+      phoneInput.classList.remove('border-red-500', 'focus:border-red-500');
+      clearFieldError('customer-phone');
+    });
+  }
 });
 
 function handleInlineBack() {
@@ -143,6 +217,13 @@ function goToStep(step) {
 
 // Worker Selection
 function selectWorker(id, name) {
+  clearLockIfNeeded();
+  cart = [];
+  selectedDate = null;
+  selectedTime = null;
+  updateCart();
+  resetDateTimeSelections();
+
   selectedWorker = { id, name };
   document.querySelectorAll('.worker-card').forEach(el => {
     el.classList.toggle('ring-2', el.dataset.workerId == id);
@@ -160,6 +241,9 @@ function selectWorker(id, name) {
     const service = servicesData.find(s => s.id == el.dataset.serviceId);
     const show = service && service.userId == id;
     el.style.display = show ? 'flex' : 'none';
+    if (!show && service) {
+      removeServiceById(service.id);
+    }
   });
 
   // Hide empty categories
@@ -167,6 +251,27 @@ function selectWorker(id, name) {
     const hasVisible = [...group.querySelectorAll('.service-card')].some(el => el.style.display !== 'none');
     group.style.display = hasVisible ? 'block' : 'none';
   });
+
+  if (cart.length === 0) {
+    updateCart();
+  }
+}
+
+function removeServiceSelection(card) {
+  card.classList.remove('ring-2', 'ring-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
+  const qty = card.querySelector('.service-quantity');
+  if (qty) {
+    qty.classList.add('hidden');
+    qty.classList.remove('flex');
+  }
+  const value = card.querySelector('.quantity-value');
+  if (value) value.textContent = '1';
+}
+
+function removeServiceById(serviceId) {
+  cart = cart.filter(item => item.id !== serviceId);
+  const card = document.querySelector('.service-card[data-service-id="' + serviceId + '"]');
+  if (card) removeServiceSelection(card);
 }
 
 // Service Selection
@@ -202,8 +307,24 @@ function updateQuantity(id, delta) {
   const item = cart.find(i => i.id === id);
   if (!item) return;
 
-  item.quantity = Math.max(1, item.quantity + delta);
-  document.querySelector('.service-card[data-service-id="' + id + '"] .quantity-value').textContent = item.quantity;
+  const nextQuantity = item.quantity + delta;
+  if (nextQuantity <= 0) {
+    cart = cart.filter(service => service.id !== id);
+    const card = document.querySelector('.service-card[data-service-id="' + id + '"]');
+    if (card) {
+      card.classList.remove('ring-2', 'ring-primary-500', 'bg-primary-50', 'dark:bg-primary-900/20');
+      const qty = card.querySelector('.service-quantity');
+      if (qty) {
+        qty.classList.add('hidden');
+        qty.classList.remove('flex');
+      }
+      const value = card.querySelector('.quantity-value');
+      if (value) value.textContent = '1';
+    }
+  } else {
+    item.quantity = nextQuantity;
+    document.querySelector('.service-card[data-service-id="' + id + '"] .quantity-value').textContent = item.quantity;
+  }
   updateCart();
   if (currentStep >= 3) {
     fetchAvailabilityForMonth();
@@ -218,8 +339,8 @@ function updateCart() {
     cartItems.innerHTML = cart.map(item => {
       return '<div class="flex justify-between items-start text-sm">' +
         '<div>' +
-          '<p class="font-medium text-neutral-900 dark:text-white">' + item.name + (item.quantity > 1 ? ' x' + item.quantity : '') + '</p>' +
-          '<p class="text-neutral-500 dark:text-neutral-400">' + (item.duration * item.quantity) + ' ' + i18n.minutes + '</p>' +
+          '<p class="font-medium text-neutral-900 dark:text-white">' + escapeHTML(item.name) + (item.quantity > 1 ? ' x' + item.quantity : '') + '</p>' +
+          '<p class="text-neutral-500 dark:text-neutral-400">' + (item.duration * item.quantity) + ' ' + escapeHTML(i18n.minutes) + '</p>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -227,6 +348,9 @@ function updateCart() {
 
   const totalDuration = cart.reduce((sum, item) => sum + item.duration * item.quantity, 0);
   document.getElementById('cart-duration').textContent = totalDuration + ' ' + i18n.minutes;
+  if (totalDuration === 0) {
+    resetDateTimeSelections();
+  }
   if (currentStep >= 3) {
     fetchAvailabilityForMonth();
   }
@@ -266,15 +390,17 @@ function renderCalendar() {
     const isTooFar = date > maxDate;
     const isUnavailable = availabilityLoaded && !availabilityDates.has(dateStr);
     const isDisabled = isPast || isTooFar || isUnavailable;
+    const isAvailable = availabilityLoaded && availabilityDates.has(dateStr);
 
     const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
     const isToday = date.toDateString() === today.toDateString();
 
     const classes = [
-      'w-full aspect-square rounded-lg flex items-center justify-center text-sm font-medium transition-colors',
-      isDisabled ? 'text-neutral-300 dark:text-neutral-600 cursor-not-allowed' : 'cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900/30',
-      isSelected ? 'bg-primary-600 text-white hover:bg-primary-700' : '',
-      isToday && !isSelected ? 'ring-2 ring-primary-500' : ''
+      'calendar-day',
+      isDisabled ? 'disabled' : '',
+      isAvailable && !isSelected && !isDisabled ? 'available' : '',
+      isSelected ? 'selected' : '',
+      isToday && !isSelected ? 'today' : ''
     ].filter(Boolean).join(' ');
 
     html += '<button type="button" class="' + classes + '" ' +
@@ -297,6 +423,7 @@ function nextMonth() {
 function selectDate(year, month, day) {
   selectedDate = new Date(year, month, day);
   selectedTime = null;
+  clearLockIfNeeded();
   renderCalendar();
   loadTimeSlots();
   updateNavigation();
@@ -365,10 +492,8 @@ function autoSelectFirstAvailableDate() {
 }
 
 async function loadTimeSlots() {
-  console.log('[DEBUG] loadTimeSlots started');
   const slotsDiv = document.getElementById('time-slots');
   const refreshBtn = document.getElementById('refresh-slots-btn');
-  console.log('[DEBUG] slotsDiv:', slotsDiv, 'refreshBtn:', refreshBtn);
   
   // Show loading state - empty grid with spinner
   slotsDiv.innerHTML = '<div class="col-span-3 flex items-center justify-center py-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-primary-600"></i></div>';
@@ -385,38 +510,48 @@ async function loadTimeSlots() {
   }
 
   const totalDuration = cart.reduce((sum, item) => sum + item.duration * item.quantity, 0);
+  if (!selectedDate || totalDuration <= 0) {
+    slotsDiv.innerHTML = '<p class="col-span-3 text-center text-neutral-500 dark:text-neutral-400 py-4">' + i18n.select_date_first + '</p>';
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      const icon = refreshBtn.querySelector('svg');
+      if (icon) icon.classList.remove('animate-spin');
+    }
+    return;
+  }
   const dateStr = formatDateLocal(selectedDate);
-  console.log('[DEBUG] Fetching slots for date:', dateStr, 'duration:', totalDuration, 'workerId:', selectedWorker.id);
-
   try {
     // Include clientToken to identify own locks
     const token = getClientToken();
     const url = '/api/reservations?date=' + dateStr + '&totalDuration=' + totalDuration + '&workerId=' + selectedWorker.id + '&detailed=true&clientToken=' + encodeURIComponent(token);
-    console.log('[DEBUG] Fetch URL:', url);
     const res = await fetch(url);
-    console.log('[DEBUG] Response status:', res.status);
     const data = await res.json();
-    console.log('[DEBUG] Response data:', data);
 
     if (!data.slots || data.slots.length === 0) {
       slotsDiv.innerHTML = '<p class="col-span-3 text-center text-neutral-500 dark:text-neutral-400 py-4">' + i18n.noSlots + '</p>';
       // Don't return early, let finally block run
     } else {
+      const selected = selectedTime;
       slotsDiv.innerHTML = data.slots.map(slot => {
         const available = slot.status === 'available';
         const locked = slot.status === 'locked';
         const ownLock = slot.status === 'own-lock';
+        const isSelected = selected && slot.time === selected;
 
-        let classes = 'p-2 rounded-lg text-sm font-medium transition-colors ';
-        if (available) {
-          classes += 'bg-neutral-100 dark:bg-neutral-700 hover:bg-primary-100 dark:hover:bg-primary-900/30 text-neutral-900 dark:text-white time-slot cursor-pointer';
-        } else if (ownLock) {
-          // Own lock - selectable with visual indicator
-          classes += 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-900/50 time-slot cursor-pointer border-2 border-primary-400 dark:border-primary-600';
+        let classes = 'time-slot ';
+        if (available || ownLock) {
+          classes += 'cursor-pointer';
+          if (ownLock) {
+            classes += ' border-2 border-primary-400 dark:border-primary-600';
+          }
         } else if (locked) {
           classes += 'bg-red-50 dark:bg-red-900/10 text-red-300 dark:text-red-700 cursor-not-allowed border border-red-100 dark:border-red-900/20';
         } else {
-          classes += 'bg-neutral-50 dark:bg-neutral-800 text-neutral-300 dark:text-neutral-600 cursor-not-allowed';
+          classes += 'bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 cursor-not-allowed opacity-60';
+        }
+
+        if (isSelected && (available || ownLock)) {
+          classes += ' selected';
         }
 
         const isSelectable = available || ownLock;
@@ -424,10 +559,15 @@ async function loadTimeSlots() {
           (isSelectable ? "onclick=\"selectTime('" + slot.time + "')\"" : 'disabled') +
           ' data-time="' + slot.time + '">' + slot.time +
           (ownLock ? ' <i data-lucide="lock" class="w-3 h-3 inline ml-1"></i>' : '') +
-          (locked ? ' <span class="sr-only">(obsazeno)</span>' : '') +
           '</button>';
       }).join('');
 
+      if (selected) {
+        const slotBtn = document.querySelector('.time-slot[data-time="' + selected + '"]');
+        if (slotBtn && !slotBtn.disabled) {
+          selectTime(selected);
+        }
+      }
       if (window.lucide) {
         lucide.createIcons();
       }
@@ -456,15 +596,8 @@ function selectTime(time) {
   selectedTime = time;
   document.querySelectorAll('.time-slot').forEach(el => {
     const isSelected = el.dataset.time === time;
-    // Remove all state classes first
-    el.classList.remove('bg-primary-600', 'bg-primary-100', 'bg-neutral-100', 'text-white', 'text-primary-700', 'dark:bg-primary-900/30', 'dark:text-primary-300');
-    
-    if (isSelected) {
-      el.classList.add('bg-primary-600', 'text-white');
-    } else {
-      // Restore default available state
-      el.classList.add('bg-neutral-100', 'dark:bg-neutral-700');
-    }
+    // Toggle the CSS .selected class which is styled in Layout.tsx
+    el.classList.toggle('selected', isSelected);
   });
 
   document.getElementById('cart-datetime').classList.remove('hidden');
@@ -503,10 +636,10 @@ function updateNavigation() {
     case 2: canProceed = cart.length > 0; break;
     case 3: canProceed = selectedDate !== null && selectedTime !== null; break;
     case 4: {
-      const name = document.getElementById('customer-name').value;
-      const email = document.getElementById('customer-email').value;
-      const phone = document.getElementById('customer-phone').value;
-      canProceed = name && email && phone;
+      const name = document.getElementById('customer-name').value.trim();
+      const email = document.getElementById('customer-email').value.trim();
+      const phone = document.getElementById('customer-phone').value.trim();
+      canProceed = name && email && phone && isValidEmail(email) && isValidPhone(phone);
       break;
     }
     case 5: canProceed = document.getElementById('terms-accepted').checked; break;
@@ -516,16 +649,19 @@ function updateNavigation() {
   const continueBtn2 = document.getElementById('btn-continue-step-2');
   if (continueBtn2) {
     continueBtn2.disabled = !(currentStep === 2 && canProceed);
+    continueBtn2.classList.toggle('btn-cta', currentStep === 2 && canProceed);
   }
   
   const continueBtn3 = document.getElementById('btn-continue-step-3');
   if (continueBtn3) {
     continueBtn3.disabled = !(currentStep === 3 && canProceed);
+    continueBtn3.classList.toggle('btn-cta', currentStep === 3 && canProceed);
   }
   
   const continueBtn4 = document.getElementById('btn-continue-step-4');
   if (continueBtn4) {
     continueBtn4.disabled = !(currentStep === 4 && canProceed);
+    continueBtn4.classList.toggle('btn-cta', currentStep === 4 && canProceed);
   }
 
   // Update summary button (only for step 5)
@@ -535,6 +671,7 @@ function updateNavigation() {
       summaryBtn.classList.remove('hidden');
       summaryBtn.classList.add('flex');
       summaryBtn.disabled = !canProceed;
+      summaryBtn.classList.toggle('btn-cta', canProceed);
     } else {
       summaryBtn.classList.add('hidden');
       summaryBtn.classList.remove('flex');
@@ -545,8 +682,73 @@ function updateNavigation() {
   }
 }
 
+function showTooltip(targetId, message) {
+  const target = document.getElementById(targetId);
+  if (!target || !message) return;
+  const existing = document.querySelector('[data-tooltip="' + targetId + '"]');
+  if (existing) existing.remove();
+  const tooltip = document.createElement('div');
+  tooltip.dataset.tooltip = targetId;
+  tooltip.className = 'absolute z-50 text-xs px-2 py-1 rounded bg-red-600 text-white shadow-md';
+  tooltip.textContent = message;
+  document.body.appendChild(tooltip);
+  const rect = target.getBoundingClientRect();
+  tooltip.style.left = rect.left + rect.width / 2 + 'px';
+  tooltip.style.top = rect.top - 8 + window.scrollY + 'px';
+  tooltip.style.transform = 'translate(-50%, -100%)';
+  setTimeout(() => tooltip.remove(), 2400);
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isValidPhone(value) {
+  return /^\+?\d[\d\s]{8,}$/.test(value);
+}
+
+function resetDateTimeSelections() {
+  selectedDate = null;
+  selectedTime = null;
+  const cartDatetime = document.getElementById('cart-datetime');
+  if (cartDatetime) cartDatetime.classList.add('hidden');
+  if (lockTimerId) {
+    clearTimeout(lockTimerId);
+    lockTimerId = null;
+  }
+  lockToken = null;
+  lockExpiresAt = null;
+  const slotsDiv = document.getElementById('time-slots');
+  if (slotsDiv) {
+    slotsDiv.innerHTML = '<p class="col-span-3 text-center text-neutral-500 dark:text-neutral-400 py-4">' + i18n.select_date_first + '</p>';
+  }
+  renderCalendar();
+  loadTimeSlots();
+}
+
+async function clearLockIfNeeded() {
+  if (!lockToken) return;
+  try {
+    await fetch('/api/reservations/unlock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reservationId: lockToken, clientToken: getClientToken() })
+    });
+  } finally {
+    lockToken = null;
+    lockExpiresAt = null;
+    if (lockTimerId) {
+      clearTimeout(lockTimerId);
+      lockTimerId = null;
+    }
+  }
+}
+
 async function nextStep() {
   hideError();
+  if (!validateStep(currentStep)) {
+    return;
+  }
 
   // Lock slot when leaving step 3
   if (currentStep === 3) {
@@ -588,6 +790,21 @@ async function nextStep() {
       }
 
       lockToken = data.reservationId;
+      lockExpiresAt = data.expiresAt || null;
+      if (lockTimerId) clearTimeout(lockTimerId);
+      if (lockExpiresAt) {
+        const remaining = new Date(lockExpiresAt).getTime() - Date.now();
+        if (remaining > 0) {
+          lockTimerId = setTimeout(() => {
+            lockToken = null;
+            lockExpiresAt = null;
+            selectedTime = null;
+            showError(i18n.lockExpired);
+            loadTimeSlots();
+            updateNavigation();
+          }, remaining);
+        }
+      }
     } catch (e) {
       showError(i18n.serverError);
       return;
@@ -640,22 +857,22 @@ function renderConfirmation() {
   document.getElementById('confirmation-summary').innerHTML =
     '<div class="flex items-center gap-3 pb-4 border-b border-neutral-200 dark:border-neutral-700">' +
       '<i data-lucide="user" class="w-5 h-5 text-primary-600"></i>' +
-      '<div><p class="text-sm text-neutral-500 dark:text-neutral-400">' + i18n.workerLabel + '</p><p class="font-medium text-neutral-900 dark:text-white">' + selectedWorker.name + '</p></div>' +
+      '<div><p class="text-sm text-neutral-500 dark:text-neutral-400">' + escapeHTML(i18n.workerLabel) + '</p><p class="font-medium text-neutral-900 dark:text-white">' + escapeHTML(selectedWorker.name) + '</p></div>' +
     '</div>' +
     '<div class="flex items-center gap-3 pb-4 border-b border-neutral-200 dark:border-neutral-700">' +
       '<i data-lucide="calendar" class="w-5 h-5 text-primary-600"></i>' +
-      '<div><p class="text-sm text-neutral-500 dark:text-neutral-400">' + i18n.datetimeLabel + '</p><p class="font-medium text-neutral-900 dark:text-white">' + dateStr + ' ' + i18n.atTime + ' ' + (selectedTime || '—') + '</p></div>' +
+      '<div><p class="text-sm text-neutral-500 dark:text-neutral-400">' + escapeHTML(i18n.datetimeLabel) + '</p><p class="font-medium text-neutral-900 dark:text-white">' + escapeHTML(dateStr) + ' ' + escapeHTML(i18n.atTime) + ' ' + escapeHTML(selectedTime || '—') + '</p></div>' +
     '</div>' +
     '<div class="pb-4 border-b border-neutral-200 dark:border-neutral-700">' +
-      '<p class="text-sm text-neutral-500 dark:text-neutral-400 mb-2">' + i18n.servicesLabel + '</p>' +
-      cart.map(item => '<p class="font-medium text-neutral-900 dark:text-white">' + item.name + (item.quantity > 1 ? ' x' + item.quantity : '') + ' — ' + (item.duration * item.quantity) + ' ' + i18n.minutes + '</p>').join('') +
+      '<p class="text-sm text-neutral-500 dark:text-neutral-400 mb-2">' + escapeHTML(i18n.servicesLabel) + '</p>' +
+      cart.map(item => '<p class="font-medium text-neutral-900 dark:text-white">' + escapeHTML(item.name) + (item.quantity > 1 ? ' x' + item.quantity : '') + ' — ' + (item.duration * item.quantity) + ' ' + escapeHTML(i18n.minutes) + '</p>').join('') +
     '</div>' +
     '<div class="flex items-center gap-3 pb-4 border-b border-neutral-200 dark:border-neutral-700">' +
       '<i data-lucide="clock" class="w-5 h-5 text-primary-600"></i>' +
-      '<div><p class="text-sm text-neutral-500 dark:text-neutral-400">' + i18n.durationLabel + '</p><p class="font-medium text-neutral-900 dark:text-white">' + totalDuration + ' ' + i18n.minutes + '</p></div>' +
+      '<div><p class="text-sm text-neutral-500 dark:text-neutral-400">' + escapeHTML(i18n.durationLabel) + '</p><p class="font-medium text-neutral-900 dark:text-white">' + totalDuration + ' ' + escapeHTML(i18n.minutes) + '</p></div>' +
     '</div>' +
-    '<div class="mt-4 text-sm text-neutral-500 dark:text-neutral-400">' + i18n.paymentInfo + '</div>' +
-    '<div class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">' + i18n.priceNote + '</div>';
+    '<div class="mt-4 text-sm text-neutral-500 dark:text-neutral-400">' + escapeHTML(i18n.paymentInfo) + '</div>' +
+    '<div class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">' + escapeHTML(i18n.priceNote) + '</div>';
   if (window.lucide) {
     lucide.createIcons();
   }
@@ -663,8 +880,16 @@ function renderConfirmation() {
 
 async function submitReservation() {
   hideError();
+  if (!validateStep(4) || !validateStep(5)) {
+    return;
+  }
 
-  const submitBtn = document.getElementById('btn-submit');
+  if (lockExpiresAt && new Date(lockExpiresAt).getTime() <= Date.now()) {
+    showError(i18n.lockExpired);
+    return;
+  }
+
+  const submitBtn = document.getElementById('btn-summary-action');
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i> ' + i18n.sendingLabel;
@@ -700,6 +925,10 @@ async function submitReservation() {
 
     // Mark as completed to prevent unlock on page close
     reservationCompleted = true;
+    if (lockTimerId) {
+      clearTimeout(lockTimerId);
+      lockTimerId = null;
+    }
 
     // Hide all steps and show success
     for (let i = 1; i <= 5; i++) {
@@ -725,6 +954,68 @@ async function submitReservation() {
   }
 }
 
+function validateStep(step) {
+  switch (step) {
+    case 1:
+      if (!selectedWorker.id) {
+        showError(i18n.missingWorker);
+        showTooltip('step-1', i18n.missingWorker);
+        return false;
+      }
+      break;
+    case 2:
+      if (cart.length === 0) {
+        showError(i18n.missingServices);
+        showTooltip('btn-continue-step-2', i18n.missingServices);
+        return false;
+      }
+      break;
+    case 3:
+      if (!selectedDate) {
+        showError(i18n.missingDate);
+        showTooltip('calendar-days', i18n.missingDate);
+        return false;
+      }
+      if (!selectedTime) {
+        showError(i18n.missingTime);
+        showTooltip('time-slots', i18n.missingTime);
+        return false;
+      }
+      break;
+    case 4: {
+      const name = document.getElementById('customer-name').value.trim();
+      const email = document.getElementById('customer-email').value.trim();
+      const phone = document.getElementById('customer-phone').value.trim();
+      if (!name || !email || !phone) {
+        showError(i18n.missingContact);
+        showTooltip('customer-name', i18n.missingContact);
+        return false;
+      }
+      if (!isValidEmail(email)) {
+        showError(i18n.invalidEmail);
+        showTooltip('customer-email', i18n.invalidEmail);
+        return false;
+      }
+      if (!isValidPhone(phone)) {
+        showError(i18n.invalidPhone);
+        showTooltip('customer-phone', i18n.invalidPhone);
+        return false;
+      }
+      break;
+    }
+    case 5:
+      if (!document.getElementById('terms-accepted').checked) {
+        showError(i18n.missingTerms);
+        showTooltip('terms-accepted', i18n.missingTerms);
+        return false;
+      }
+      break;
+    default:
+      return true;
+  }
+  return true;
+}
+
 function showError(msg) {
   const el = document.getElementById('error-message');
   el.textContent = msg;
@@ -733,4 +1024,20 @@ function showError(msg) {
 
 function hideError() {
   document.getElementById('error-message').classList.add('hidden');
+}
+
+function showFieldError(fieldId, message) {
+  clearFieldError(fieldId);
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+  const errorEl = document.createElement('p');
+  errorEl.id = fieldId + '-error';
+  errorEl.className = 'text-red-500 text-xs mt-1';
+  errorEl.textContent = message;
+  field.parentNode.appendChild(errorEl);
+}
+
+function clearFieldError(fieldId) {
+  const existing = document.getElementById(fieldId + '-error');
+  if (existing) existing.remove();
 }

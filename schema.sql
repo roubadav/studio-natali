@@ -153,3 +153,9 @@ CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
 CREATE INDEX IF NOT EXISTS idx_reservations_lock_token ON reservations(lock_token);
 CREATE INDEX IF NOT EXISTS idx_services_user ON services(user_id);
 CREATE INDEX IF NOT EXISTS idx_services_category ON services(category_id);
+
+-- SMS Daily Counter (for rate limiting)
+CREATE TABLE IF NOT EXISTS sms_daily_counter (
+    date TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0
+);

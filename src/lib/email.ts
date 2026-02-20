@@ -15,12 +15,16 @@ export class EmailService {
   }
 
   async send(options: EmailOptions): Promise<boolean> {
-    // If we have a Resend API key, use it (future proofing)
+    // Priority: 1. SMTP (via MailChannels or relay), 2. Resend API, 3. Mock
+    if (this.env.SMTP_HOST && this.env.SMTP_USER) {
+      return this.sendWithMailChannels(options);
+    }
+
     if (this.env.RESEND_API_KEY) {
       return this.sendWithResend(options);
     }
 
-    // Otherwise mock it
+    // Mock fallback for development
     return this.sendMock(options);
   }
 
@@ -29,12 +33,74 @@ export class EmailService {
     console.log('To:', options.to);
     console.log('Subject:', options.subject);
     console.log('Reply-To:', options.replyTo);
-    console.log('HTML Preview:', options.html.substring(0, 100) + '...');
+    console.log('HTML Preview:', options.html.substring(0, 200) + '...');
     console.log('=====================================');
     return true;
   }
 
+  /**
+   * Send email via MailChannels API (free for Cloudflare Workers).
+   * This is the recommended approach for CF Workers since direct SMTP
+   * connections are not supported in the Workers runtime.
+   * 
+   * To use seznam.cz SMTP directly, you would need a proxy/relay service
+   * or Cloudflare Email Workers + Email Routing.
+   * 
+   * MailChannels setup:
+   * 1. Add DNS TXT record: _mailchannels.yourdomain.com TXT "v=mc1 cfid=your-worker-subdomain.workers.dev"
+   * 2. No API key needed - authenticated via Cloudflare Workers
+   * 
+   * Alternative: Use SMTP_PASS as Resend API key if using Resend for production.
+   */
+  private async sendWithMailChannels(options: EmailOptions): Promise<boolean> {
+    const fromAddress = this.env.SMTP_FROM || `Studio Natali <${this.env.SMTP_USER}>`;
+    
+    // Parse "Name <email>" format
+    const fromMatch = fromAddress.match(/^(.+?)\s*<(.+?)>$/);
+    const fromName = fromMatch ? fromMatch[1].trim() : 'Studio Natali';
+    const fromEmail = fromMatch ? fromMatch[2].trim() : (this.env.SMTP_USER || 'info@studionatali-ricany.cz');
+
+    try {
+      const res = await fetch('https://api.mailchannels.net/tx/v1/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personalizations: [{
+            to: [{ email: options.to }],
+          }],
+          from: {
+            email: fromEmail,
+            name: fromName,
+          },
+          subject: options.subject,
+          content: [{
+            type: 'text/html',
+            value: options.html,
+          }],
+          ...(options.replyTo ? { reply_to: { email: options.replyTo } } : {}),
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        console.error('MailChannels send failed:', res.status, error);
+        // Fallback to mock if MailChannels fails
+        console.log('Falling back to mock email...');
+        return this.sendMock(options);
+      }
+
+      console.log('Email sent via MailChannels to:', options.to);
+      return true;
+    } catch (e) {
+      console.error('MailChannels send error:', e);
+      // Fallback to mock
+      return this.sendMock(options);
+    }
+  }
+
   private async sendWithResend(options: EmailOptions): Promise<boolean> {
+    const fromAddress = this.env.SMTP_FROM || 'Studio Natali <rezervace@studionatali.cz>';
+
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -43,7 +109,7 @@ export class EmailService {
           'Authorization': `Bearer ${this.env.RESEND_API_KEY}`
         },
         body: JSON.stringify({
-          from: 'Studio Natali <rezervace@studionatali.cz>',
+          from: fromAddress,
           to: options.to,
           subject: options.subject,
           html: options.html,

@@ -4,6 +4,15 @@ export interface Env {
   JWT_SECRET: string;
   APP_URL: string;
   RESEND_API_KEY?: string;
+  // SMTP Configuration (seznam.cz or other provider)
+  SMTP_HOST?: string;
+  SMTP_PORT?: string;
+  SMTP_USER?: string;
+  SMTP_PASS?: string;
+  SMTP_FROM?: string;
+  // SMS Configuration (smsbrana.cz / smsmanager.com)
+  SMS_API_LOGIN?: string;
+  SMS_API_PASSWORD?: string;
 }
 
 // Database Types

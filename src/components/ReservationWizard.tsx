@@ -57,7 +57,17 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
       priceNote: t.reservation.pricing_note,
       verificationMessage: t.reservation.verification_message,
       atTime: t.reservation.at_time,
-      backLabel: t.common.back
+      backLabel: t.common.back,
+      select_date_first: t.reservation.select_date_first,
+      missingWorker: t.reservation.missing_worker,
+      missingServices: t.reservation.missing_services,
+      missingDate: t.reservation.missing_date,
+      missingTime: t.reservation.missing_time,
+      missingContact: t.reservation.missing_contact,
+      missingTerms: t.reservation.missing_terms,
+      invalidEmail: t.reservation.invalid_email,
+      invalidPhone: t.reservation.invalid_phone,
+      lockExpired: t.reservation.lock_expired
     },
     servicesData: services.map(s => ({
       id: s.id,
@@ -73,7 +83,7 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
   const serializedWizardData = JSON.stringify(wizardData).replace(/</g, '\\u003c');
 
   return (
-    <BaseLayout title={t.reservation.page_title}>
+    <BaseLayout title={t.reservation.page_title} description="Online rezervace do kadeřnictví Studio Natali v Říčanech u Prahy. Vyberte si kadeřnici, službu a volný termín." canonical="https://studionatali-ricany.cz/rezervace" noindex={false}>
       <div class="min-h-screen bg-accent-cream dark:bg-neutral-900">
         {/* Header */}
         <header class="bg-white dark:bg-neutral-800 shadow-sm">
@@ -156,7 +166,7 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
                     <button type="button" class="btn btn-outline" onclick="handleInlineBack()">
                       ← {t.common.back}
                     </button>
-                    <button type="button" id="btn-continue-step-2" class="btn btn-primary" onclick="nextStep()" disabled>
+                    <button type="button" id="btn-continue-step-2" class="btn btn-primary btn-cta" onclick="nextStep()">
                       {t.reservation.continue} →
                     </button>
                   </div>
@@ -222,7 +232,7 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
                     <button type="button" class="btn btn-outline" onclick="handleInlineBack()">
                       ← {t.common.back}
                     </button>
-                    <button type="button" id="btn-continue-step-3" class="btn btn-primary" onclick="nextStep()" disabled>
+                    <button type="button" id="btn-continue-step-3" class="btn btn-primary btn-cta" onclick="nextStep()">
                       {t.reservation.continue} →
                     </button>
                   </div>
@@ -280,7 +290,7 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
                     <button type="button" class="btn btn-outline" onclick="handleInlineBack()">
                       ← {t.common.back}
                     </button>
-                    <button type="button" id="btn-continue-step-4" class="btn btn-primary" onclick="nextStep()" disabled>
+                    <button type="button" id="btn-continue-step-4" class="btn btn-primary btn-cta" onclick="nextStep()">
                       {t.reservation.continue} →
                     </button>
                   </div>
@@ -296,7 +306,16 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
                   </div>
                   <div>
                     <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{t.reservation.phone} *</label>
-                    <input type="tel" id="customer-phone" class="form-input" required placeholder={t.reservation.phone_placeholder} />
+                    <input
+                      type="tel"
+                      id="customer-phone"
+                      class="form-input"
+                      required
+                      placeholder={t.reservation.phone_placeholder}
+                      inputmode="tel"
+                      pattern="^\\+\\d[\\d\\s]{8,}$"
+                      value="+420 "
+                    />
                   </div>
                   <div>
                     <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">{t.reservation.note}</label>
@@ -320,11 +339,14 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
                     {/* Summary will be filled by JS */}
                   </div>
                   <div class="border-t border-neutral-200 dark:border-neutral-700 pt-4">
-                    <label class="flex items-start gap-3 cursor-pointer">
-                      <input type="checkbox" id="terms-accepted" class="mt-1 w-5 h-5 text-primary-600 rounded border-neutral-300 focus:ring-primary-500" />
-                      <span class="text-sm text-neutral-600 dark:text-neutral-400">
-                        {t.reservation.terms_prefix} <a href="/obchodni-podminky" target="_blank" class="text-primary-600 hover:underline">{t.reservation.terms_link}</a> {t.reservation.terms_and} 
+                    <label class="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" id="terms-accepted" class="w-5 h-5 text-primary-600 rounded border-neutral-300 focus:ring-primary-500" />
+                      <span class="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                        {t.reservation.terms_prefix}{' '}
+                        <a href="/obchodni-podminky" target="_blank" class="text-primary-600 hover:underline">{t.reservation.terms_link}</a>{' '}
+                        {t.reservation.terms_and}{' '}
                         <a href="/zpracovani-udaju" target="_blank" class="text-primary-600 hover:underline">{t.reservation.privacy_link}</a>.
+                        <span class="text-red-500 ml-1">*</span>
                       </span>
                     </label>
                   </div>
@@ -375,13 +397,13 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
                   </div>
                   
                   {/* Summary Action Button - only visible in step 5 */}
-                  <button 
-                    type="button" 
-                    id="btn-summary-action" 
-                    onclick="submitReservation()" 
-                    class="btn btn-primary w-full mt-6 items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hidden" 
-                    disabled
-                  >
+                    <button 
+                      type="button" 
+                      id="btn-summary-action" 
+                      onclick="submitReservation()" 
+                      class="btn btn-primary btn-cta w-full mt-6 items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hidden" 
+                      disabled
+                    >
                     <i data-lucide="check" class="w-4 h-4 mr-2"></i>
                     {t.reservation.submit}
                   </button>

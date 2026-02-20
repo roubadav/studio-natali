@@ -1,4 +1,5 @@
 import type { Env, JWTPayload } from '../types';
+import { compareSync } from 'bcryptjs';
 
 // Simple JWT implementation for Cloudflare Workers
 // Uses Web Crypto API
@@ -121,15 +122,9 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   try {
-    // Support bcrypt-style hashes (for migration from existing data)
+    // Support bcrypt-style hashes (legacy data)
     if (stored.startsWith('$2a$') || stored.startsWith('$2b$')) {
-      // For bcrypt hashes, we need to use a different approach
-      // Since we can't use bcrypt in Workers, we'll need to migrate passwords
-      // For now, return false and require password reset
-      // In production, you would handle migration differently
-      console.warn('bcrypt hash detected - password migration needed');
-      // Simple comparison for demo purposes (INSECURE - only for development!)
-      return stored === '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.4SxKnXdFzBNGGm' && password === 'admin123';
+      return compareSync(password, stored);
     }
     
     if (!stored.startsWith('pbkdf2:')) return false;

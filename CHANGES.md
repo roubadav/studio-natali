@@ -1,3 +1,52 @@
+# Změny - Sprint V2 (aktuální)
+
+## Přehled
+Komplexní sprint zaměřený na UI perfekci, SEO, SMS notifikace a testování.
+
+### UI Vylepšení
+- **Header**: role="banner", aria-label, aria-expanded na hamburger menu, mobilní menu se zavírá po kliknutí na odkaz
+- **Footer**: Vylepšený kontrast textu v dark mode (neutral-400 → neutral-300), rel="noopener noreferrer" na sociálních odkazech, aria-label na ikonách
+- **Hero H1**: Přepnuto na font-display (Cormorant Garamond)
+- **Kontrast**: CSS proměnné text-muted zvýšeny (light: #525252, dark: #b5b5b5)
+- **Admin sidebar**: Breakpoint md → lg (1024px), žádné překrývání na tabletech
+- **Admin tabulky**: overflow-x-auto pro mobilní zařízení
+
+### SEO
+- **Structured data**: JSON-LD HairSalon schema (adresa, GPS, otevírací doba, sameAs)
+- **Meta tagy**: og:type, og:locale (cs_CZ), og:site_name, Twitter Cards, geo.region, ICBM, theme-color
+- **Canonical URL**: Na všech stránkách
+- **noindex**: Admin stránky, obchodní podmínky, GDPR
+- **robots.txt**: Blokuje /admin/, /api/, /test
+- **sitemap.xml**: 4 veřejné URL
+- **SEO Guide**: Kompletní návod pro manuální kroky (SEO_GUIDE.md)
+
+### SMS Notifikace
+- **Nový soubor**: src/lib/sms.ts – SMSService s denním limitem
+- **Denní limit**: Konfigurovatelný v admin nastavení (výchozí 20/den)
+- **Počítadlo**: Nová tabulka sms_daily_counter v D1
+- **Integrace**: SMS při potvrzení/odmítnutí rezervace, notifikace kadeřnici
+- **API endpoint**: GET /api/sms/status pro zjištění zbývajících SMS
+- **Admin UI**: Denní limit pole + sender ID v nastavení
+- **Migrace**: migrations/0002_add_sms_counter.sql
+
+### Lucide Ikony
+- **Self-hosted**: 49 ikon, 8.8 KB (vs ~200 KB CDN)
+- **Build script**: scripts/build-icons.cjs s alias mapováním
+
+### Copywriting
+- 7 českých textů přepsáno (bez klišé, lokální zaměření)
+
+### Playwright Testování
+- **Screenshot script**: scripts/screenshots.ts (3 viewporty × 2 režimy)
+- **Admin testy**: scripts/admin-tests.ts – 36 E2E testů, 100% pass rate
+- **Pokrytí**: Auth, navigace, CRUD služby/kategorie, nastavení, responzivita, API, SEO
+
+### Opravy chyb
+- **createService**: Odstraněn neexistující slug sloupec z INSERT dotazu
+- **Mobile menu**: Hamburger přepíná ikonu menu/x, zavírá menu na klik odkazu
+
+---
+
 # Změny - Systém Zámků Slotů (23. ledna 2026)
 
 ## Přehled Problému

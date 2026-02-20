@@ -35,16 +35,16 @@ export const AdminServicesPage: FC<ServicesPageProps> = ({ services, categories,
       {/* Modal Styles - Moved to Admin.tsx */}
 
 
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <h1 class="text-2xl font-bold text-neutral-900 dark:text-white">Služby</h1>
         <div class="flex gap-2">
-          <button onclick="openCategoryModal()" class="btn btn-outline">
+          <button onclick="openCategoryModal()" class="btn btn-outline text-sm">
             <i data-lucide="folder-plus" class="w-4 h-4 mr-2"></i>
-            Nová kategorie
+            Kategorie
           </button>
-          <button onclick="openServiceModal()" class="btn btn-primary">
+          <button onclick="openServiceModal()" class="btn btn-primary text-sm">
             <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-            Nová služba
+            Služba
           </button>
         </div>
       </div>
@@ -62,8 +62,8 @@ export const AdminServicesPage: FC<ServicesPageProps> = ({ services, categories,
       </div>
 
       {/* Services Table */}
-      <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm overflow-hidden">
-        <table class="w-full">
+      <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm overflow-x-auto">
+        <table class="w-full min-w-[640px]">
           <thead class="bg-neutral-50 dark:bg-neutral-700">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase">Název</th>
@@ -497,8 +497,8 @@ export const AdminUsersPage: FC<UsersPageProps> = ({ users }) => {
       </div>
 
       {/* Users Table */}
-      <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm overflow-hidden">
-        <table class="w-full">
+      <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm overflow-x-auto">
+        <table class="w-full min-w-[640px]">
           <thead class="bg-neutral-50 dark:bg-neutral-700">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase">Jméno</th>
@@ -1210,15 +1210,16 @@ export const AdminSettingsPage: FC<SettingsPageProps> = ({ settings, currentUser
               <input type="checkbox" id="setting-sms_enabled" checked={settings.sms_enabled === 'true'} />
               <span class="font-medium">Povolit odesílání SMS</span>
             </label>
-            <p class="text-xs text-neutral-500 mb-4">Vyžaduje integraci SMS brány.</p>
+            <p class="text-xs text-neutral-500 mb-4">Vyžaduje integraci SMS brány (SMSBrána.cz / SMSManager). API přihlašovací údaje se konfigurují jako proměnné prostředí (SMS_API_LOGIN, SMS_API_PASSWORD).</p>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-2">API Key (SMS Gateway)</label>
-            <input type="password" id="setting-sms_api_key" class="form-input" value={settings.sms_api_key || ''} placeholder="Vložte API klíč" />
+            <label class="block text-sm font-medium mb-2">Denní limit SMS</label>
+            <input type="number" id="setting-sms_daily_limit" class="form-input w-32" value={settings.sms_daily_limit || '20'} min="1" max="200" />
+            <p class="text-xs text-neutral-500 mt-1">Maximální počet SMS odeslaných za jeden den (bezpečnostní ochrana).</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-2">Sender ID (Odesílatel)</label>
-            <input type="text" id="setting-sms_sender" class="form-input" value={settings.sms_sender || 'StudioNatali'} placeholder="max 11 znaků" />
+            <input type="text" id="setting-sms_sender" class="form-input" value={settings.sms_sender || 'StudioNatali'} placeholder="max 11 znaků" maxlength="11" />
           </div>
 
           <div class="pt-4">
@@ -1369,7 +1370,7 @@ export const AdminSettingsPage: FC<SettingsPageProps> = ({ settings, currentUser
             booking_window: document.getElementById('setting-booking_window').value,
             data_retention_days: document.getElementById('setting-data_retention_days').value,
             sms_enabled: document.getElementById('setting-sms_enabled').checked ? 'true' : 'false',
-            sms_api_key: document.getElementById('setting-sms_api_key').value,
+            sms_daily_limit: document.getElementById('setting-sms_daily_limit').value,
             sms_sender: document.getElementById('setting-sms_sender').value
           };
           
@@ -1439,9 +1440,13 @@ export const AdminReservationsPage: FC<ReservationsPageProps> = ({ reservations,
 
   return (
     <div>
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
         <h1 class="text-2xl font-bold text-neutral-900 dark:text-white">Rezervace</h1>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
+          <button onclick="openNewReservationModal()" class="btn btn-primary flex items-center gap-2">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Nová rezervace
+          </button>
           <div class="relative">
             <select id="filter-worker" onchange="filterReservations()" class="form-input py-2 pl-4 pr-10 appearance-none cursor-pointer w-48">
               <option value="">Všechny kadeřnice</option>
@@ -1475,7 +1480,7 @@ export const AdminReservationsPage: FC<ReservationsPageProps> = ({ reservations,
       </div>
 
       {/* Reservations Table */}
-      <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm overflow-hidden">
+      <div class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm overflow-x-auto">
         <table class="w-full">
           <thead class="bg-neutral-50 dark:bg-neutral-700">
             <tr>
@@ -1561,6 +1566,63 @@ export const AdminReservationsPage: FC<ReservationsPageProps> = ({ reservations,
         <div class="text-center py-12 text-neutral-500">Žádné rezervace</div>
       )}
 
+      {/* New Reservation Modal */}
+      <div id="new-reservation-modal" class="modal-overlay">
+        <div class="modal-container max-w-lg">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-neutral-900 dark:text-white">Nová rezervace</h2>
+            <button onclick="closeNewReservationModal()" class="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <form id="new-reservation-form" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Kadeřnice *</label>
+              <select id="nr-worker" class="form-input" required>
+                <option value="">Vyberte...</option>
+                {workers.map(w => <option value={w.id}>{w.name}</option>)}
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Datum *</label>
+                <input type="date" id="nr-date" class="form-input" required />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Čas *</label>
+                <select id="nr-time" class="form-input" required>
+                  <option value="">Nejprve vyberte datum</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Služby *</label>
+              <div id="nr-services" class="text-sm text-neutral-500">Nejprve vyberte kadeřnici</div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Jméno zákazníka *</label>
+              <input type="text" id="nr-name" class="form-input" required placeholder="Jan Novák" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Telefon *</label>
+              <input type="tel" id="nr-phone" class="form-input" required placeholder="+420 " />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Email</label>
+              <input type="email" id="nr-email" class="form-input" placeholder="email@example.com" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Poznámka</label>
+              <textarea id="nr-note" class="form-input" rows={2} placeholder="Telefonická rezervace..."></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+              <button type="button" onclick="closeNewReservationModal()" class="btn btn-outline">Zrušit</button>
+              <button type="submit" class="btn btn-primary">Vytvořit rezervaci</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <script dangerouslySetInnerHTML={{ __html: `
         function filterReservations() {
           const workerId = document.getElementById('filter-worker').value;
@@ -1643,6 +1705,143 @@ export const AdminReservationsPage: FC<ReservationsPageProps> = ({ reservations,
         document.addEventListener('DOMContentLoaded', () => {
            filterReservations();
            updateWeekTitle();
+        });
+
+        // ============ NEW RESERVATION MODAL ============
+        let nrSelectedServices = [];
+
+        function openNewReservationModal() {
+          document.getElementById('new-reservation-modal').classList.add('open');
+          lucide.createIcons();
+        }
+
+        function closeNewReservationModal() {
+          document.getElementById('new-reservation-modal').classList.remove('open');
+          document.getElementById('new-reservation-form').reset();
+          nrSelectedServices = [];
+          document.getElementById('nr-services').innerHTML = '<span class="text-neutral-500">Nejprve vyberte kadeřnici</span>';
+          document.getElementById('nr-time').innerHTML = '<option value="">Nejprve vyberte datum</option>';
+        }
+
+        // Load services when worker is selected
+        document.getElementById('nr-worker').addEventListener('change', async (e) => {
+          const workerId = e.target.value;
+          nrSelectedServices = [];
+          if (!workerId) {
+            document.getElementById('nr-services').innerHTML = '<span class="text-neutral-500">Nejprve vyberte kadeřnici</span>';
+            return;
+          }
+          try {
+            const res = await fetch('/api/services?workerId=' + workerId);
+            const data = await res.json();
+            const services = data.services || [];
+            if (services.length === 0) {
+              document.getElementById('nr-services').innerHTML = '<span class="text-neutral-500">Žádné služby</span>';
+              return;
+            }
+            document.getElementById('nr-services').innerHTML = services.map(s => 
+              '<label class="flex items-center gap-2 py-1 cursor-pointer">' +
+                '<input type="checkbox" class="custom-checkbox" value="' + s.id + '" onchange="toggleNrService(' + s.id + ', ' + s.duration + ')">' +
+                '<span>' + s.name + ' (' + s.duration + ' min, ' + s.price + ' Kč)</span>' +
+              '</label>'
+            ).join('');
+          } catch (err) {
+            document.getElementById('nr-services').innerHTML = '<span class="text-red-500">Chyba při načítání služeb</span>';
+          }
+        });
+
+        function toggleNrService(id, duration) {
+          const idx = nrSelectedServices.findIndex(s => s.serviceId === id);
+          if (idx >= 0) {
+            nrSelectedServices.splice(idx, 1);
+          } else {
+            nrSelectedServices.push({ serviceId: id, quantity: 1 });
+          }
+          // Reload time slots if date is set
+          const date = document.getElementById('nr-date').value;
+          if (date && nrSelectedServices.length > 0) {
+            loadNrTimeSlots();
+          }
+        }
+
+        // Load time slots when date changes
+        document.getElementById('nr-date').addEventListener('change', () => {
+          if (nrSelectedServices.length > 0) {
+            loadNrTimeSlots();
+          }
+        });
+
+        async function loadNrTimeSlots() {
+          const workerId = document.getElementById('nr-worker').value;
+          const date = document.getElementById('nr-date').value;
+          if (!workerId || !date || nrSelectedServices.length === 0) return;
+
+          // Calculate total duration from selected services
+          const checkboxes = document.querySelectorAll('#nr-services input[type=checkbox]:checked');
+          let totalDuration = 0;
+          checkboxes.forEach(cb => {
+            const duration = parseInt(cb.getAttribute('onchange').match(/,\\s*(\\d+)/)?.[1] || '0');
+            totalDuration += duration;
+          });
+          if (totalDuration <= 0) totalDuration = 30;
+
+          try {
+            const res = await fetch('/api/reservations?date=' + date + '&totalDuration=' + totalDuration + '&workerId=' + workerId);
+            const data = await res.json();
+            const slots = data.slots || [];
+            const select = document.getElementById('nr-time');
+            if (slots.length === 0) {
+              select.innerHTML = '<option value="">Žádné volné sloty</option>';
+            } else {
+              const timeSlots = Array.isArray(slots) && typeof slots[0] === 'string' ? slots : slots.map(s => s.time);
+              select.innerHTML = '<option value="">Vyberte čas...</option>' + 
+                timeSlots.map(t => '<option value="' + t + '">' + t + '</option>').join('');
+            }
+          } catch (err) {
+            document.getElementById('nr-time').innerHTML = '<option value="">Chyba načítání</option>';
+          }
+        }
+
+        // Submit new reservation
+        document.getElementById('new-reservation-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const workerId = parseInt(document.getElementById('nr-worker').value);
+          const date = document.getElementById('nr-date').value;
+          const time = document.getElementById('nr-time').value;
+          const name = document.getElementById('nr-name').value.trim();
+          const phone = document.getElementById('nr-phone').value.trim();
+          const email = document.getElementById('nr-email').value.trim();
+          const note = document.getElementById('nr-note').value.trim();
+
+          if (!workerId || !date || !time || !name || !phone || nrSelectedServices.length === 0) {
+            window.showToast('Vyplňte všechna povinná pole a vyberte službu', 'error');
+            return;
+          }
+
+          try {
+            const res = await fetch('/api/reservations/admin-create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                workerId, date, time,
+                customerName: name,
+                customerPhone: phone,
+                customerEmail: email || undefined,
+                note: note || undefined,
+                items: nrSelectedServices
+              })
+            });
+            const data = await res.json();
+            if (res.ok) {
+              window.showToast('Rezervace vytvořena', 'success');
+              closeNewReservationModal();
+              setTimeout(() => window.location.reload(), 500);
+            } else {
+              window.showToast(data.error || 'Chyba', 'error');
+            }
+          } catch (err) {
+            window.showToast('Chyba při vytváření rezervace', 'error');
+          }
         });
       `}} />
     </div>

@@ -1,0 +1,12 @@
+# Studio Natali - Robots.txt
+User-agent: *
+Allow: /
+
+# Block admin and internal pages
+Disallow: /admin/
+Disallow: /test
+Disallow: /api/
+Disallow: /partials/
+
+# Sitemap
+Sitemap: https://studionatali-ricany.cz/sitemap.xml

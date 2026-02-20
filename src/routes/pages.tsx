@@ -40,7 +40,7 @@ pageRoutes.get('/', async (c) => {
   const showGalleryLink = images.length > 0;
   
   return c.html(
-    <SiteLayout showGalleryLink={showGalleryLink}>
+    <SiteLayout showGalleryLink={showGalleryLink} canonical="https://studionatali-ricany.cz/" description={t.common.site_description}>
       <HeroSection />
       <AboutSection />
       <TeamSection workers={workers} />
@@ -54,7 +54,7 @@ pageRoutes.get('/', async (c) => {
 
 // Reservation page
 pageRoutes.get('/rezervace', async (c) => {
-  const workers = await db.getWorkers(c.env.DB);
+  const workers = await db.getBookableWorkers(c.env.DB);
   const services = await db.getAllServices(c.env.DB);
   const categories = await db.getAllCategories(c.env.DB);
   const workerIdParam = c.req.query('workerId');
@@ -100,11 +100,11 @@ pageRoutes.get('/obchodni-podminky', async (c) => {
   }, {} as Record<string, string>);
   const contactName = settings.salon_name || t.terms.contact_name;
   const contactAddress = settings.address || t.terms.contact_address;
-  const contactPhone = settings.phone || t.terms.contact_phone;
-  const contactEmail = settings.notification_email || t.terms.contact_email;
+  const contactPhone = settings.contact_phone || t.terms.contact_phone;
+  const contactEmail = settings.contact_email || t.terms.contact_email;
   const addressLines = contactAddress.split('\n').map(line => line.trim()).filter(Boolean);
   return c.html(
-    <SiteLayout title={t.terms.page_title} showGalleryLink={showGalleryLink}>
+    <SiteLayout title={t.terms.page_title} showGalleryLink={showGalleryLink} canonical="https://studionatali-ricany.cz/obchodni-podminky" noindex={true}>
       <div class="section">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 class="section-title mb-6">{t.terms.title}</h1>
@@ -118,18 +118,15 @@ pageRoutes.get('/obchodni-podminky', async (c) => {
               ))}
               <div class="mt-6">
                 <h2>{t.contact.title}</h2>
-                <p>
-                  {contactName}<br />
+                <div class="space-y-1">
+                  <p class="font-semibold">{contactName}</p>
                   {addressLines.map((line, idx) => (
-                    <span key={`${line}-${idx}`}>
-                      {line}
-                      {idx < addressLines.length - 1 ? <br /> : null}
-                    </span>
+                    <p key={`${line}-${idx}`}>{line}</p>
                   ))}
-                  {addressLines.length === 0 ? <>{contactAddress}<br /></> : null}
-                  {contactPhone}<br />
-                  {contactEmail}
-                </p>
+                  {addressLines.length === 0 ? <p>{contactAddress}</p> : null}
+                  <p>{contactPhone}</p>
+                  <p>{contactEmail}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -151,10 +148,12 @@ pageRoutes.get('/zpracovani-udaju', async (c) => {
     acc[s.key] = s.value;
     return acc;
   }, {} as Record<string, string>);
-  const contactEmail = settings.notification_email || t.terms.contact_email;
+  const contactEmail = settings.contact_email || t.terms.contact_email;
   const contactName = settings.salon_name || t.terms.contact_name;
+  const contactPhone = settings.contact_phone || t.terms.contact_phone;
+  const contactAddress = settings.address || t.terms.contact_address;
   return c.html(
-    <SiteLayout title={t.privacy.page_title} showGalleryLink={showGalleryLink}>
+    <SiteLayout title={t.privacy.page_title} showGalleryLink={showGalleryLink} canonical="https://studionatali-ricany.cz/zpracovani-udaju" noindex={true}>
       <div class="section">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 class="section-title mb-6">{t.privacy.title}</h1>
@@ -178,8 +177,12 @@ pageRoutes.get('/zpracovani-udaju', async (c) => {
                 ))}
               <div class="mt-6">
                 <h2>{t.privacy.sections.find(section => /kontakt|contact/i.test(section.title))?.title || 'Kontakt'}</h2>
-                <p>{contactName}</p>
-                <p>{contactEmail}</p>
+                <div class="space-y-1">
+                  <p class="font-semibold">{contactName}</p>
+                  <p>{contactAddress}</p>
+                  <p>{contactPhone}</p>
+                  <p>{contactEmail}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -199,7 +202,7 @@ pageRoutes.get('/admin/rezervace/schvalit/:token', async (c) => {
   const reservation = await db.getReservationByToken(c.env.DB, token);
   
   if (!reservation) {
-    return c.html(<BaseLayout><div class="p-8 text-center text-red-600">{t.reservation.not_found}</div></BaseLayout>);
+    return c.html(<BaseLayout noindex={true}><div class="p-8 text-center text-red-600">{t.reservation.not_found}</div></BaseLayout>);
   }
   
   return c.html(<ReservationActionPage reservation={reservation} token={token} action="approve" />);
@@ -210,7 +213,7 @@ pageRoutes.get('/admin/rezervace/odmitnout/:token', async (c) => {
   const reservation = await db.getReservationByToken(c.env.DB, token);
   
   if (!reservation) {
-    return c.html(<BaseLayout><div class="p-8 text-center text-red-600">{t.reservation.not_found}</div></BaseLayout>);
+    return c.html(<BaseLayout noindex={true}><div class="p-8 text-center text-red-600">{t.reservation.not_found}</div></BaseLayout>);
   }
   
   return c.html(<ReservationActionPage reservation={reservation} token={token} action="reject" />);
@@ -221,7 +224,7 @@ pageRoutes.get('/rezervace/zrusit/:token', async (c) => {
   const reservation = await db.getReservationByToken(c.env.DB, token);
   
   if (!reservation) {
-    return c.html(<BaseLayout><div class="p-8 text-center text-red-600">{t.reservation.not_found}</div></BaseLayout>);
+    return c.html(<BaseLayout noindex={true}><div class="p-8 text-center text-red-600">{t.reservation.not_found}</div></BaseLayout>);
   }
   
   return c.html(<ReservationActionPage reservation={reservation} token={token} action="cancel" />);
@@ -241,7 +244,7 @@ pageRoutes.get('/admin/login', async (c) => {
   }
   
   return c.html(
-    <BaseLayout title={t.admin.login_title}>
+    <BaseLayout title={t.admin.login_title} noindex={true}>
       <AdminLoginPage />
     </BaseLayout>
   );

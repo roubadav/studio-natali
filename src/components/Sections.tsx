@@ -23,12 +23,18 @@ const fallbackPhoto = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
 const blobStyles = `
   .blob-mask-1 {
     clip-path: polygon(8% 5%, 20% 2%, 35% 0%, 50% 3%, 65% 1%, 80% 4%, 92% 8%, 97% 20%, 100% 35%, 98% 50%, 100% 65%, 96% 80%, 90% 92%, 80% 97%, 65% 100%, 50% 98%, 35% 100%, 20% 96%, 8% 90%, 3% 78%, 0% 65%, 2% 50%, 0% 35%, 4% 20%);
+    will-change: auto;
+    transform: translateZ(0);
   }
   .blob-mask-2 {
     clip-path: polygon(10% 0%, 25% 3%, 40% 0%, 55% 4%, 70% 0%, 85% 5%, 95% 12%, 100% 28%, 97% 45%, 100% 60%, 95% 75%, 100% 90%, 90% 100%, 75% 97%, 60% 100%, 45% 96%, 30% 100%, 15% 95%, 5% 88%, 0% 72%, 5% 55%, 0% 40%, 5% 25%, 0% 12%);
+    will-change: auto;
+    transform: translateZ(0);
   }
   .blob-mask-3 {
     clip-path: polygon(5% 8%, 18% 0%, 32% 5%, 48% 0%, 62% 6%, 78% 0%, 92% 10%, 100% 25%, 95% 42%, 100% 58%, 94% 75%, 100% 90%, 88% 100%, 72% 95%, 55% 100%, 40% 94%, 25% 100%, 10% 92%, 0% 78%, 6% 60%, 0% 45%, 8% 28%);
+    will-change: auto;
+    transform: translateZ(0);
   }
   .blob-frame {
     position: relative;
@@ -87,14 +93,14 @@ export const HeroSection: FC = () => {
         <div class="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Text Content */}
           <div class="max-w-xl animate-fade-in">
-            <h1 class="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight mb-6 leading-tight text-neutral-900 dark:text-white font-sans">
+            <h1 class="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight mb-6 leading-tight text-neutral-900 dark:text-white font-display">
               <span class="font-medium">{t.hero.title_prefix}</span> <span class="font-light text-primary-600 dark:text-primary-400">{t.hero.title_brand}</span>
             </h1>
-            <p class="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 mb-8">
+            <p class="text-lg md:text-xl text-neutral-600 dark:text-neutral-300 mb-8 leading-relaxed">
               {t.hero.subtitle}
             </p>
             <div class="flex flex-col sm:flex-row gap-4">
-              <a href="/rezervace" class="btn btn-primary btn-lg inline-flex items-center justify-center gap-2 px-8 py-4 text-lg">
+              <a href="/rezervace" class="btn btn-primary btn-cta btn-lg inline-flex items-center justify-center gap-2 px-8 py-4 text-lg">
                 <i data-lucide="calendar" class="w-5 h-5"></i>
                 {t.hero.cta_primary}
               </a>
@@ -108,7 +114,17 @@ export const HeroSection: FC = () => {
           {/* Hero Image */}
           <div class="relative hidden md:block animate-slide-up">
             <div class="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl">
-              <img src="/images/hero.png" alt={t.hero.image_alt} class="w-full h-full object-cover" />
+              <img
+                src="/images/hero.png"
+                alt={t.hero.image_alt}
+                class="w-full h-full object-cover"
+                width="600"
+                height="750"
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
+                onerror={`this.onerror=null; this.src='${fallbackPhoto}'; this.classList.add('object-contain');`}
+              />
             </div>
             <div class="absolute -top-4 -right-4 w-full h-full border-2 border-primary-300 rounded-2xl -z-10"></div>
           </div>
@@ -148,7 +164,7 @@ export const AboutSection: FC = () => {
           {/* Content */}
           <div>
             <h2 class="section-title">{t.about.title}</h2>
-            <div class="space-y-4 text-neutral-600 dark:text-neutral-400 mb-8">
+            <div class="space-y-4 text-neutral-600 dark:text-neutral-300 mb-8 leading-relaxed">
               <p>{t.about.paragraph1}</p>
               <p>{t.about.paragraph2}</p>
               <p>{t.about.paragraph3}</p>
@@ -188,10 +204,17 @@ export const ServicesSection: FC = () => {
           {services.map(service => (
             <a href="/rezervace" class="card p-6 text-center group">
               <div class="relative w-full aspect-square mb-4 rounded-xl overflow-hidden">
-                <img src={service.image} alt={service.name} class="w-full h-full object-cover" loading="lazy" decoding="async" />
+                <img
+                  src={service.image}
+                  alt={service.name}
+                  class="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  onerror={`this.onerror=null; this.src='${fallbackPhoto}'; this.classList.add('object-contain');`}
+                />
               </div>
               <h3 class="text-xl font-medium mb-2 text-neutral-900 dark:text-white font-display">{service.name}</h3>
-              <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">{service.description}</p>
+              <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-4">{service.description}</p>
               <span class="text-primary-600 dark:text-primary-400 font-medium text-sm inline-flex items-center justify-center gap-1 transition-transform duration-200 group-hover:translate-x-1">
                 {t.common.view}
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
@@ -202,7 +225,7 @@ export const ServicesSection: FC = () => {
         
         {/* CTA */}
         <div class="text-center mt-12">
-          <a href="/rezervace" class="btn btn-primary btn-lg px-8 py-4 text-lg">
+          <a href="/rezervace" class="btn btn-primary btn-cta btn-lg px-8 py-4 text-lg">
             {t.services_section.explore}
           </a>
         </div>
@@ -252,12 +275,19 @@ export const TeamSection: FC<{ workers: Omit<User, 'password_hash'>[] }> = ({ wo
               <div class="p-6">
                 <h3 class="text-2xl font-medium text-neutral-900 dark:text-white mb-1">{member.name}</h3>
                 <p class="text-primary-600 dark:text-primary-400 font-medium mb-4">{t.team.role_label}</p>
-                <p class="text-neutral-600 dark:text-neutral-400 mb-4 line-clamp-3">{member.bio}</p>
+                <p class="text-neutral-600 dark:text-neutral-300 mb-4 line-clamp-3">{member.bio}</p>
                 
-                <a href={`/rezervace?workerId=${member.id}`} class="btn btn-primary w-full inline-flex items-center justify-center gap-2">
-                  <i data-lucide="calendar" class="w-4 h-4"></i>
-                  {t.team.book_appointment}
-                </a>
+                {member.slug === 'natalie' ? (
+                  <a href="https://www.facebook.com/StudioNatali" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition-colors" style="background-color: #1877F2;" onmouseover="this.style.backgroundColor='#1565C0'" onmouseout="this.style.backgroundColor='#1877F2'">
+                    <i data-lucide="facebook" class="w-5 h-5"></i>
+                    Rezervovat přes Facebook
+                  </a>
+                ) : (
+                  <a href={`/rezervace?workerId=${member.id}`} class="btn btn-primary w-full inline-flex items-center justify-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                    {t.team.book_appointment}
+                  </a>
+                )}
               </div>
             </div>
           ))}
@@ -270,8 +300,8 @@ export const TeamSection: FC<{ workers: Omit<User, 'password_hash'>[] }> = ({ wo
 // ============ GALLERY SECTION ============
 
 export const GallerySection: FC<{ images: GalleryImage[] }> = ({ images }) => {
-  if (!images || images.length === 0) return null;
-  
+  const hasImages = images && images.length > 0;
+
   return (
     <section class="section bg-white dark:bg-neutral-800 animate-on-scroll" id="galerie">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -279,13 +309,19 @@ export const GallerySection: FC<{ images: GalleryImage[] }> = ({ images }) => {
           <h2 class="section-title">{t.gallery.title}</h2>
           <p class="section-subtitle mx-auto">{t.gallery.subtitle}</p>
         </div>
-        
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+        <div id="gallery-empty" class={`text-center py-12 text-neutral-500 dark:text-neutral-400 ${hasImages ? 'hidden' : ''}`}>
+          <i data-lucide="image" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+          <p>{t.gallery.empty}</p>
+        </div>
+
+        <div id="gallery-grid" class={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ${hasImages ? '' : 'hidden'}`}>
           {images.slice(0, 8).map((image, index) => (
-            <div 
+            <div
               class="relative overflow-hidden rounded-lg aspect-square cursor-pointer animate-on-scroll"
               style={`transition-delay: ${index * 100}ms`}
               onclick={`openLightbox('${image.url}')`}
+              data-gallery-item
             >
               <img 
                 src={image.url} 
@@ -293,7 +329,7 @@ export const GallerySection: FC<{ images: GalleryImage[] }> = ({ images }) => {
                 class="w-full h-full object-cover" 
                 loading="lazy"
                 decoding="async"
-                onerror="this.parentElement.style.display='none';"
+                onerror="handleGalleryImageError(this);"
               />
             </div>
           ))}
@@ -309,6 +345,25 @@ export const GallerySection: FC<{ images: GalleryImage[] }> = ({ images }) => {
       </div>
 
       <script dangerouslySetInnerHTML={{ __html: `
+        function updateGalleryEmptyState() {
+          const grid = document.getElementById('gallery-grid');
+          const empty = document.getElementById('gallery-empty');
+          if (!grid || !empty) return;
+          const visibleItems = grid.querySelectorAll('[data-gallery-item]:not(.hidden)');
+          if (visibleItems.length === 0) {
+            grid.classList.add('hidden');
+            empty.classList.remove('hidden');
+          }
+        }
+
+        function handleGalleryImageError(img) {
+          const item = img.closest('[data-gallery-item]');
+          if (item) {
+            item.classList.add('hidden');
+          }
+          updateGalleryEmptyState();
+        }
+
         function openLightbox(src) {
           const modal = document.getElementById('lightbox-modal');
           const img = document.getElementById('lightbox-image');
@@ -335,6 +390,8 @@ export const GallerySection: FC<{ images: GalleryImage[] }> = ({ images }) => {
         document.addEventListener('keydown', (e) => {
           if (e.key === 'Escape') closeLightbox();
         });
+
+        document.addEventListener('DOMContentLoaded', updateGalleryEmptyState);
       `}} />
     </section>
   );
@@ -350,10 +407,10 @@ export const CTASection: FC = () => {
           <h2 class="text-3xl md:text-4xl mb-6 font-display text-neutral-900 dark:text-white">
             {t.cta.title}
           </h2>
-          <p class="text-lg text-neutral-600 dark:text-neutral-400 mb-8 font-light">
+          <p class="text-lg text-neutral-600 dark:text-neutral-300 mb-8 font-light leading-relaxed">
             {t.cta.description}
           </p>
-          <a href="/rezervace" class="btn btn-primary btn-lg inline-flex items-center gap-2 w-fit mx-auto px-10 shadow-lg">
+          <a href="/rezervace" class="btn btn-primary btn-cta btn-lg inline-flex items-center gap-2 w-fit mx-auto px-10 shadow-lg">
             <i data-lucide="calendar" class="w-5 h-5"></i>
             {t.cta.button}
           </a>
@@ -402,7 +459,7 @@ export const ContactSection: FC = () => {
                 </div>
                 <div>
                   <h3 class="font-semibold text-neutral-900 dark:text-white mb-1">{t.contact.email}</h3>
-                  <a href="mailto:info@studionatali.cz" class="text-neutral-600 dark:text-neutral-400 hover:text-primary-600">info@studionatali.cz</a>
+                  <a href="mailto:info@studionatali-ricany.cz" class="text-neutral-600 dark:text-neutral-400 hover:text-primary-600">info@studionatali-ricany.cz</a>
                 </div>
               </div>
               
@@ -423,9 +480,9 @@ export const ContactSection: FC = () => {
           
           {/* Map */}
           <div class="relative">
-            <div class="aspect-square lg:aspect-auto lg:h-full min-h-[400px] rounded-2xl overflow-hidden shadow-lg">
+            <div class="aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-lg">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1467.6264461174426!2d14.664769626095348!3d49.99999662639322!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x470b8d318ea7458b%3A0x31a72cd05a567cf2!2sStudio%20Natali!5e0!3m2!1scs!2scz!4v1766830850542!5m2!1scs!2scz"
+                data-src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1467.6264461174426!2d14.664769626095348!3d49.99999662639322!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x470b8d318ea7458b%3A0x31a72cd05a567cf2!2sStudio%20Natali!5e0!3m2!1scs!2scz!4v1766830850542!5m2!1scs!2scz"
                 width="100%"
                 height="100%"
                 style="border:0"
@@ -433,7 +490,25 @@ export const ContactSection: FC = () => {
                 loading="lazy"
                 referrerpolicy="no-referrer-when-downgrade"
                 title={t.contact.map_title}
+                id="google-map-iframe"
               ></iframe>
+              <script dangerouslySetInnerHTML={{ __html: `
+                // Lazy-load Google Maps only when section is visible
+                const mapObserver = new IntersectionObserver((entries) => {
+                  entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                      const iframe = document.getElementById('google-map-iframe');
+                      if (iframe && iframe.dataset.src) {
+                        iframe.src = iframe.dataset.src;
+                        delete iframe.dataset.src;
+                      }
+                      mapObserver.unobserve(entry.target);
+                    }
+                  });
+                }, { rootMargin: '200px' });
+                const mapContainer = document.getElementById('google-map-iframe');
+                if (mapContainer) mapObserver.observe(mapContainer.parentElement);
+              ` }} />
             </div>
           </div>
         </div>

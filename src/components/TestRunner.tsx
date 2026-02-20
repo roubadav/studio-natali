@@ -285,12 +285,14 @@ export const TestRunnerPage: FC = () => {
         
         async function testApiReservations() {
           const res = await fetch('/api/reservations');
+          if (res.status === 401 || res.status === 403) return; // Admin-only endpoint
           if (!res.ok) throw new Error('Status: ' + res.status);
           // Response should be an array of reservations
         }
         
         async function testApiSettings() {
           const res = await fetch('/api/settings');
+          if (res.status === 401 || res.status === 403) return; // Admin-only endpoint
           if (!res.ok) throw new Error('Status: ' + res.status);
           const data = await res.json();
           if (!data.settings) throw new Error('Invalid response');

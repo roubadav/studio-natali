@@ -53,7 +53,7 @@ export const AdminLayout: FC<PropsWithChildren<{ title?: string }>> = ({ childre
         `}} />
 
         {/* Sidebar */}
-        <aside class="fixed left-0 top-0 h-full w-64 bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 z-50 flex flex-col">
+        <aside id="admin-sidebar" class="fixed left-0 top-0 h-full w-64 bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
           {/* Logo */}
           <div class="h-20 flex items-center px-6 border-b border-neutral-200 dark:border-neutral-700">
             <a href="/" class="flex items-center">
@@ -88,8 +88,21 @@ export const AdminLayout: FC<PropsWithChildren<{ title?: string }>> = ({ childre
           </div>
         </aside>
         
+        {/* Sidebar Overlay (mobile/tablet) */}
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleAdminSidebar()"></div>
+        
+        {/* Mobile/Tablet Header */}
+        <div class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 h-16 flex items-center px-4">
+          <button onclick="toggleAdminSidebar()" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+          </button>
+          <a href="/" class="ml-3">
+            <img src="/logo.svg" alt="Studio Natali" class="h-8 w-auto" />
+          </a>
+        </div>
+
         {/* Main Content */}
-        <main class="ml-64 p-8">
+        <main class="ml-0 lg:ml-64 p-4 md:p-6 lg:p-8 pt-20 lg:pt-8 transition-[margin] duration-300">
           {children}
         </main>
         
@@ -169,6 +182,20 @@ export const AdminLayout: FC<PropsWithChildren<{ title?: string }>> = ({ childre
           // Override global alert for cleaner look (optional, but requested to replace alerts)
           // We keep direct calls to window.showToast preferred, but this catches stragglers
           // window.alert = (msg) => window.showToast(msg, 'info'); 
+
+          // Admin sidebar toggle for mobile
+          window.toggleAdminSidebar = () => {
+            const sidebar = document.getElementById('admin-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isOpen = !sidebar.classList.contains('-translate-x-full');
+            if (isOpen) {
+              sidebar.classList.add('-translate-x-full');
+              overlay.classList.add('hidden');
+            } else {
+              sidebar.classList.remove('-translate-x-full');
+              overlay.classList.remove('hidden');
+            }
+          };
         `}} />
       </div>
     </BaseLayout>

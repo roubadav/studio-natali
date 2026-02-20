@@ -40,6 +40,18 @@ export async function getWorkers(db: D1Database): Promise<Omit<User, 'password_h
   return result.results;
 }
 
+export async function getBookableWorkers(db: D1Database): Promise<Omit<User, 'password_hash'>[]> {
+  const result = await db.prepare(`
+    SELECT DISTINCT u.id, u.email, u.name, u.slug, u.role, u.bio, u.phone, u.image, u.color, 
+           u.notification_email, u.notification_phone, u.is_active, u.created_at, u.updated_at 
+    FROM users u
+    INNER JOIN services s ON s.user_id = u.id AND s.is_active = 1
+    WHERE u.is_active = 1 AND u.slug != 'admin'
+    ORDER BY u.name ASC
+  `).all<Omit<User, 'password_hash'>>();
+  return result.results;
+}
+
 export async function createUser(
   db: D1Database,
   data: {
@@ -72,18 +84,25 @@ export async function createUser(
   return (await getUserByEmail(db, data.email))!;
 }
 
+const ALLOWED_USER_COLUMNS = ['email', 'name', 'slug', 'role', 'bio', 'phone', 'image', 'color', 'notification_email', 'notification_phone', 'is_active'] as const;
+
 export async function updateUser(
   db: D1Database,
   id: number,
   updates: Partial<Omit<User, 'id' | 'password_hash' | 'created_at'>>
 ): Promise<User | null> {
-  const fields = Object.keys(updates)
+  // Whitelist allowed columns to prevent SQL injection
+  const safeUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([key]) => (ALLOWED_USER_COLUMNS as readonly string[]).includes(key))
+  );
+  
+  const fields = Object.keys(safeUpdates)
     .map(key => `${key} = ?`)
     .join(', ');
   
   if (!fields) return getUserById(db, id);
   
-  const values = Object.values(updates);
+  const values = Object.values(safeUpdates);
   await db.prepare(`UPDATE users SET ${fields}, updated_at = datetime('now') WHERE id = ?`)
     .bind(...values, id)
     .run();
@@ -347,22 +366,25 @@ export async function createReservation(
   return (await getReservationById(db, reservationId as number))!;
 }
 
+const ALLOWED_RESERVATION_COLUMNS = ['status', 'date', 'start_time', 'end_time', 'note', 'customer_name', 'customer_email', 'customer_phone', 'total_duration', 'total_price'] as const;
+
 export async function updateReservation(
   db: D1Database,
   id: number,
   updates: Partial<Reservation>
 ): Promise<ReservationWithItems | null> {
-  const fields = Object.keys(updates)
-    .filter(key => key !== 'id' && key !== 'created_at' && key !== 'management_token')
+  // Whitelist allowed columns to prevent SQL injection
+  const safeUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([key]) => (ALLOWED_RESERVATION_COLUMNS as readonly string[]).includes(key))
+  );
+  
+  const fields = Object.keys(safeUpdates)
     .map(key => `${key} = ?`)
     .join(', ');
   
   if (!fields) return getReservationById(db, id);
   
-  const values = Object.values(updates).filter((_, i) => {
-    const key = Object.keys(updates)[i];
-    return key !== 'id' && key !== 'created_at' && key !== 'management_token';
-  });
+  const values = Object.values(safeUpdates);
   
   await db.prepare(`UPDATE reservations SET ${fields}, updated_at = datetime('now') WHERE id = ?`)
     .bind(...values, id)
@@ -734,14 +756,11 @@ export async function createService(
     duration: number;
   }
 ): Promise<ServiceWithCategory> {
-  const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  
   const result = await db.prepare(`
-    INSERT INTO services (name, slug, description, category_id, user_id, price, price_type, duration)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO services (name, description, category_id, user_id, price, price_type, duration)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.name,
-    slug,
     data.description || null,
     data.category_id,
     data.user_id,
@@ -752,6 +771,8 @@ export async function createService(
   
   return (await getServiceById(db, result.meta.last_row_id as number))!;
 }
+
+const ALLOWED_SERVICE_COLUMNS = ['name', 'description', 'category_id', 'user_id', 'price', 'price_type', 'duration', 'is_active'] as const;
 
 export async function updateService(
   db: D1Database,
@@ -767,11 +788,16 @@ export async function updateService(
     is_active: boolean;
   }>
 ): Promise<ServiceWithCategory | null> {
-  const fields = Object.keys(data).map(key => `${key} = ?`).join(', ');
+  // Whitelist allowed columns to prevent SQL injection
+  const safeData = Object.fromEntries(
+    Object.entries(data).filter(([key]) => (ALLOWED_SERVICE_COLUMNS as readonly string[]).includes(key))
+  );
+  
+  const fields = Object.keys(safeData).map(key => `${key} = ?`).join(', ');
   if (!fields) return getServiceById(db, id);
   
   await db.prepare(`UPDATE services SET ${fields}, updated_at = datetime('now') WHERE id = ?`)
-    .bind(...Object.values(data), id)
+    .bind(...Object.values(safeData), id)
     .run();
   
   return getServiceById(db, id);
