@@ -6,7 +6,7 @@
  *
  * Ochrana před spamem:
  *  1. SMS OTP – každá rezervace vyžaduje ověřovací kód zaslaný SMS zákazníkovi
- *  2. Rate limiting – nastaveno v index.tsx (3 pokusy / IP / hodinu)
+ *  2. Rate limiting – nastaveno v index.tsx (10 OTP ověřovacích pokusů / IP / hodinu, brute-force ochrana)
  *  3. Max 2 čekající rezervace na jedno telefonní číslo najednou
  *  4. OTP vyprší za 30 minut, max. 3 chybné pokusy
  *

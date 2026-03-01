@@ -84,24 +84,9 @@ app.use('/api/*', cors({
 }));
 
 // Rate limiting pro AI agent booking API
-// POST /api/agent/book – max 3 pokusy za 60 minut na IP (ochrana před spamem)
-app.use('/api/agent/book', async (c, next) => {
-  if (c.req.method === 'POST') {
-    if (isLocalRequest(c.req.url)) {
-      await next();
-      return;
-    }
-    const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
-    const { allowed, remaining } = await rateLimit(`agent-book:${ip}`, 3, 3600);
-    if (!allowed) {
-      return c.json({ error: 'Příliš mnoho pokusů o rezervaci. Zkuste to za hodinu.' }, 429);
-    }
-    c.header('X-RateLimit-Remaining', String(remaining));
-  }
-  await next();
-});
+// POST /api/agent/book – bez IP rate limitu (ochrana je SMS OTP + limit čekajících rezervací na tel. číslo)
 
-// POST /api/agent/verify – max 10 pokusů za 60 minut na IP
+// POST /api/agent/verify – max 10 pokusů za 60 minut na IP (brute-force ochrana OTP)
 app.use('/api/agent/verify', async (c, next) => {
   if (c.req.method === 'POST') {
     if (isLocalRequest(c.req.url)) {

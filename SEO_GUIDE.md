@@ -61,7 +61,7 @@ Zákazník: dostane potvrzovací e-mail
 | **SMS OTP** | Bez kódu ze SMS nelze rezervaci dokončit – fake čísla kód neobdrží |
 | **Token expiry** | OTP i verifikační token vyprší za 30 minut |
 | **Max. pokusy** | 3 chybné OTP pokusy = token zneplatněn |
-| **Rate limiting** | Max 3 rezervace za hodinu na IP adresu |
+| **Rate limiting** | Max 10 OTP ověřovacích pokusů za hodinu na IP (brute-force ochrana) |
 | **Limit na telefon** | Max 2 čekající rezervace na jedno tel. číslo najednou |
 
 ### Endpointy
