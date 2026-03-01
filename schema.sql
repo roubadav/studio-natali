@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
-    role TEXT DEFAULT 'user' CHECK(role IN ('user', 'admin', 'superadmin')),
+    role TEXT DEFAULT 'user' CHECK(role IN ('user', 'admin', 'superadmin', 'external')),
     bio TEXT,
     phone TEXT,
     image TEXT,
@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS service_categories (
     slug TEXT UNIQUE NOT NULL,
     description TEXT,
     icon TEXT,
+    image TEXT,
     sort_order INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now'))
 );

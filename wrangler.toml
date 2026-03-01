@@ -5,9 +5,15 @@ compatibility_flags = ["nodejs_compat"]
 
 assets = { directory = "./public" }
 
+# Custom domain routes
+routes = [
+  { pattern = "studionatali-ricany.cz/*", zone_name = "studionatali-ricany.cz" },
+  { pattern = "www.studionatali-ricany.cz/*", zone_name = "studionatali-ricany.cz" }
+]
+
 [vars]
 JWT_SECRET = "studio-natali-secret-key-change-in-production"
-APP_URL = "https://studionatali.cz"
+APP_URL = "https://studionatali-ricany.cz"
 # SMTP Configuration for seznam.cz
 SMTP_HOST = "smtp.seznam.cz"
 SMTP_PORT = "465"

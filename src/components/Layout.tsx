@@ -1,5 +1,4 @@
 import type { FC, PropsWithChildren } from 'hono/jsx';
-import { html, raw } from 'hono/html';
 import { getTranslations } from '../lib/i18n';
 
 const t = getTranslations();
@@ -19,7 +18,7 @@ interface SEOProps {
 export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, description, canonical, ogImage, ogType, noindex, structuredData }) => {
   const pageTitle = title || t.common.site_title;
   const pageDescription = description || t.common.site_description;
-  const pageOgImage = ogImage || '/images/hero.png';
+  const pageOgImage = ogImage || 'https://studionatali-ricany.cz/images/hero.png';
   
   // Local Business structured data (default for all pages)
   const localBusinessSchema = {
@@ -40,14 +39,15 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
     },
     "geo": {
       "@type": "GeoCoordinates",
-      "latitude": 49.99999,
-      "longitude": 14.66476
+      "latitude": 49.99148,
+      "longitude": 14.65752
     },
     "openingHoursSpecification": [
-      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "08:30", "closes": "18:00" }
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "09:00", "closes": "17:00" }
     ],
     "image": "https://studionatali-ricany.cz/images/hero.png",
-    "priceRange": "$$",
+    "logo": "https://studionatali-ricany.cz/logo.svg",
+    "priceRange": "250 Kč – 2 000 Kč",
     "sameAs": [
       "https://www.facebook.com/StudioNatali",
       "https://instagram.com/studionatali"
@@ -73,6 +73,8 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:image" content={pageOgImage} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta property="og:url" content={canonical || "https://studionatali-ricany.cz"} />
         <meta property="og:locale" content="cs_CZ" />
         <meta property="og:site_name" content="Studio Natali" />
@@ -81,12 +83,16 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
         <meta name="twitter:description" content={pageDescription} />
         <meta name="twitter:image" content={pageOgImage} />
         
+        {/* Additional SEO */}
+        <meta name="format-detection" content="telephone=yes" />
+        <link rel="alternate" hrefLang="cs" href={canonical || "https://studionatali-ricany.cz"} />
+        
         {/* Additional SEO meta tags */}
         <meta name="author" content="Studio Natali" />
         <meta name="geo.region" content="CZ-20" />
         <meta name="geo.placename" content="Říčany" />
-        <meta name="geo.position" content="49.99999;14.66476" />
-        <meta name="ICBM" content="49.99999, 14.66476" />
+        <meta name="geo.position" content="49.99148;14.65752" />
+        <meta name="ICBM" content="49.99148, 14.65752" />
         <meta name="theme-color" content="#b8936a" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#171717" media="(prefers-color-scheme: dark)" />
         
@@ -106,8 +112,11 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
         {/* HTMX - loaded async for perf */}
         <script src="https://unpkg.com/htmx.org@2.0.0" defer></script>
         
+        {/* Flatpickr CSS - loaded before custom styles so overrides work */}
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
+
         {/* Tailwind CSS (compiled) */}
-        <link rel="stylesheet" href="/styles.css" />
+        <link rel="stylesheet" href={`/styles.css?v=${Date.now()}`} />
         
         {/* Custom Styles */}
         <style dangerouslySetInnerHTML={{ __html: `
@@ -140,6 +149,12 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
           html { 
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
+            color-scheme: light;
+          }
+          @media (prefers-color-scheme: dark) {
+            html {
+              color-scheme: dark;
+            }
           }
           body { 
             font-family: 'Nunito Sans', system-ui, sans-serif;
@@ -219,25 +234,82 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
           }
           
           .form-input {
-            width: 100%; padding: 0.625rem 1rem;
-            border: 1px solid var(--color-border); border-radius: 0.5rem;
+            width: 100%; padding: 0.75rem 1rem;
+            border: 1px solid var(--color-border); border-radius: 0.625rem;
             background: var(--color-bg-card); color: var(--color-text);
+            font-size: 1rem;
+            min-height: 3rem;
             transition: all 0.2s;
+          }
+          @media (max-width: 768px) {
+            .form-input {
+              min-height: 3.25rem;
+              font-size: 1.0625rem;
+              padding: 0.875rem 1rem;
+            }
+          }
+          select.form-input {
+            min-height: 3rem;
+            padding: 0.75rem 2.25rem 0.75rem 1rem;
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            cursor: pointer;
+          }
+          @media (prefers-color-scheme: dark) {
+            select.form-input {
+              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            }
           }
           .form-input:focus {
             outline: none; border-color: var(--color-primary);
             box-shadow: 0 0 0 3px rgba(184, 147, 106, 0.2);
           }
+          input[type="date"].form-input,
           input[type="time"].form-input {
-            padding: 0.5rem 0.5rem 0.5rem 0.75rem;
-            letter-spacing: 0.5px;
+            min-height: 3rem;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            line-height: 1.5;
           }
+          @media (max-width: 768px) {
+            input[type="date"].form-input,
+            input[type="time"].form-input {
+              min-height: 3.25rem;
+              padding: 0.875rem 1rem;
+              font-size: 1.0625rem;
+            }
+          }
+          input[type="date"]::-webkit-calendar-picker-indicator,
           input[type="time"]::-webkit-calendar-picker-indicator {
-            width: 14px;
-            height: 14px;
-            margin-left: 8px;
-            opacity: 0.6;
+            width: 24px;
+            height: 24px;
+            padding: 4px;
+            opacity: 0.5;
             cursor: pointer;
+            border-radius: 6px;
+            transition: opacity 0.15s, background-color 0.15s;
+          }
+          input[type="date"]::-webkit-calendar-picker-indicator:hover,
+          input[type="time"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+            background-color: rgba(0,0,0,0.06);
+          }
+          @media (prefers-color-scheme: dark) {
+            input[type="date"]::-webkit-calendar-picker-indicator,
+            input[type="time"]::-webkit-calendar-picker-indicator {
+              filter: invert(0.85);
+              opacity: 0.6;
+            }
+            input[type="date"]::-webkit-calendar-picker-indicator:hover,
+            input[type="time"]::-webkit-calendar-picker-indicator:hover {
+              opacity: 1;
+              background-color: rgba(255,255,255,0.12);
+            }
           }
           /* Custom checkbox styles */
           .custom-checkbox {
@@ -383,8 +455,174 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
             padding: 2rem;
             box-shadow: 0 6px 20px rgba(0,0,0,0.06);
           }
+
+          /* Flatpickr custom theme */
+          .flatpickr-calendar {
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid var(--color-border);
+            background: var(--color-bg-card);
+            font-family: 'Nunito Sans', system-ui, sans-serif;
+            padding: 4px;
+            width: 307px;
+          }
+          .flatpickr-months {
+            padding: 8px 8px 4px;
+          }
+          .flatpickr-months .flatpickr-month {
+            height: 36px;
+          }
+          .flatpickr-current-month {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--color-text);
+            padding-top: 4px;
+          }
+          .flatpickr-current-month .flatpickr-monthDropdown-months,
+          .flatpickr-current-month input.cur-year {
+            color: var(--color-text);
+            font-weight: 600;
+          }
+          .flatpickr-months .flatpickr-prev-month,
+          .flatpickr-months .flatpickr-next-month {
+            color: var(--color-text-muted);
+            fill: var(--color-text-muted);
+            padding: 6px 14px;
+            top: 12px;
+          }
+          .flatpickr-months .flatpickr-prev-month:hover,
+          .flatpickr-months .flatpickr-next-month:hover {
+            color: var(--color-primary);
+            fill: var(--color-primary);
+          }
+          .flatpickr-months .flatpickr-prev-month svg,
+          .flatpickr-months .flatpickr-next-month svg {
+            width: 12px;
+            height: 12px;
+          }
+          span.flatpickr-weekday {
+            color: var(--color-text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+          }
+          .flatpickr-day {
+            color: var(--color-text);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            max-width: 38px;
+            height: 38px;
+            line-height: 38px;
+            margin: 1px;
+          }
+          .flatpickr-day:hover {
+            background: var(--color-bg-secondary);
+            border-color: var(--color-border);
+          }
+          .flatpickr-day.today {
+            border-color: var(--color-primary);
+          }
+          .flatpickr-day.today:hover {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+          }
+          .flatpickr-day.selected,
+          .flatpickr-day.selected:hover {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: white;
+          }
+          .flatpickr-day.flatpickr-disabled,
+          .flatpickr-day.flatpickr-disabled:hover,
+          .flatpickr-day.prevMonthDay,
+          .flatpickr-day.nextMonthDay {
+            color: var(--color-text-muted);
+            opacity: 0.4;
+          }
+          .flatpickr-innerContainer {
+            padding: 0 10px 8px;
+          }
+          .dayContainer {
+            width: 285px;
+            min-width: 285px;
+            max-width: 285px;
+          }
+          .flatpickr-rContainer {
+            width: 285px;
+          }
+          .flatpickr-days {
+            width: 285px;
+          }
+          .flatpickr-weekdays {
+            padding: 0 2px;
+          }
+          /* Alt input placeholder styling */
+          input.flatpickr-input[readonly] + input.form-input {
+            cursor: pointer;
+          }
+          @media (prefers-color-scheme: dark) {
+            .flatpickr-calendar {
+              background: #262626;
+              border-color: #404040;
+              box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4);
+            }
+            .flatpickr-current-month {
+              color: #f5f5f5;
+            }
+            .flatpickr-current-month .flatpickr-monthDropdown-months,
+            .flatpickr-current-month input.cur-year {
+              color: #f5f5f5;
+              background: #262626;
+            }
+            .flatpickr-current-month .flatpickr-monthDropdown-months option {
+              background: #262626;
+              color: #f5f5f5;
+            }
+            .flatpickr-months .flatpickr-prev-month,
+            .flatpickr-months .flatpickr-next-month {
+              color: #b5b5b5;
+              fill: #b5b5b5;
+            }
+            .flatpickr-months .flatpickr-prev-month:hover,
+            .flatpickr-months .flatpickr-next-month:hover {
+              color: #dcc9ad;
+              fill: #dcc9ad;
+            }
+            span.flatpickr-weekday {
+              color: #b5b5b5;
+            }
+            .flatpickr-day {
+              color: #f5f5f5;
+            }
+            .flatpickr-day:hover {
+              background: #404040;
+              border-color: #525252;
+            }
+            .flatpickr-day.today:not(.selected) {
+              border-color: #b8936a;
+              color: #dcc9ad;
+            }
+            .flatpickr-day.selected,
+            .flatpickr-day.selected:hover {
+              background: #b8936a;
+              border-color: #b8936a;
+              color: #171717;
+            }
+            .flatpickr-day.flatpickr-disabled,
+            .flatpickr-day.flatpickr-disabled:hover,
+            .flatpickr-day.prevMonthDay,
+            .flatpickr-day.nextMonthDay {
+              color: #737373;
+            }
+          }
         `}} />
         
+        {/* Flatpickr - custom date picker */}
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/cs.js" defer></script>
+
         {/* Lucide Icons - self-hosted subset (49 icons, ~9KB) */}
         <script src="/lucide-icons.js" defer></script>
       </head>
@@ -402,6 +640,41 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
           
           document.addEventListener('DOMContentLoaded', () => {
             initLucide();
+
+            // Initialize Flatpickr on all date inputs
+            function initFlatpickr() {
+              if (typeof flatpickr === 'undefined') {
+                requestAnimationFrame(initFlatpickr);
+                return;
+              }
+              if (flatpickr.l10ns && flatpickr.l10ns.cs) {
+                flatpickr.localize(flatpickr.l10ns.cs);
+              }
+              document.querySelectorAll('input[type="date"]').forEach(function(el) {
+                if (el._flatpickr) return;
+                var existingVal = el.value;
+                var placeholderText = el.getAttribute('placeholder') || 'Vyberte datum…';
+                var fp = flatpickr(el, {
+                  dateFormat: 'Y-m-d',
+                  altInput: true,
+                  altFormat: 'j. n. Y',
+                  allowInput: false,
+                  disableMobile: true,
+                  onChange: function(selectedDates, dateStr) {
+                    el.value = dateStr;
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                  }
+                });
+                // Set placeholder on the visible alt input
+                if (fp.altInput) {
+                  fp.altInput.setAttribute('placeholder', placeholderText);
+                }
+                if (existingVal) fp.setDate(existingVal, false);
+              });
+            }
+            initFlatpickr();
+            window._initFlatpickr = initFlatpickr;
             
             // Intersection Observer for scroll animations
             const observer = new IntersectionObserver((entries) => {
@@ -467,7 +740,7 @@ export const Header: FC<{ showGalleryLink?: boolean }> = ({ showGalleryLink = tr
   return (
     <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 dark:bg-neutral-900/95 header-blur shadow-sm" role="banner">
       <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Hlavní navigace">
-        <div class="flex items-center justify-between h-16">
+        <div class="flex items-center justify-between h-20">
           {/* Logo */}
           <a href="/" class="flex items-center" aria-label="Studio Natali – domovská stránka">
             <img src="/logo.svg" alt={t.common.site_name} class="h-14 w-auto" width="56" height="56" />
@@ -554,14 +827,14 @@ export const Footer: FC<{ showGalleryLink?: boolean }> = ({ showGalleryLink = tr
           {/* Navigation */}
           <div>
             <h3 class="text-lg font-semibold mb-6 text-neutral-900 dark:text-white">{t.footer.navigation}</h3>
-            <ul class="space-y-3">
+            <ul class="grid grid-cols-2 gap-x-6 gap-y-3">
               <li><a href="/" class="text-neutral-600 dark:text-neutral-300 hover:text-primary-600">{t.common.home}</a></li>
+              <li><a href="/#kontakt" class="text-neutral-600 dark:text-neutral-300 hover:text-primary-600">{t.common.contact}</a></li>
               <li><a href="/#sluzby" class="text-neutral-600 dark:text-neutral-300 hover:text-primary-600">{t.common.services}</a></li>
+              <li><a href="/rezervace" class="text-neutral-600 dark:text-neutral-300 hover:text-primary-600">{t.common.reservation}</a></li>
               {showGalleryLink && (
                 <li><a href="/#galerie" class="text-neutral-600 dark:text-neutral-300 hover:text-primary-600">{t.common.gallery}</a></li>
               )}
-              <li><a href="/#kontakt" class="text-neutral-600 dark:text-neutral-300 hover:text-primary-600">{t.common.contact}</a></li>
-              <li><a href="/rezervace" class="text-neutral-600 dark:text-neutral-300 hover:text-primary-600">{t.common.reservation}</a></li>
             </ul>
           </div>
           

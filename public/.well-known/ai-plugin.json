@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Studio Natali – rezervace",
+  "name_for_model": "studio_natali_booking",
+  "description_for_human": "Rezervace termínu v kadeřnickém salonu Studio Natali v Říčanech u Prahy. Dvě kadeřnice – Natálie a Vilma. Střihy, barvení, melíry, keratinové ošetření.",
+  "description_for_model": "Plugin pro rezervaci termínu v kadeřnickém salonu Studio Natali v Říčanech. Postup: (1) GET /api/agent/services pro seznam služeb, (2) GET /api/agent/workers pro kadeřnice, (3) GET /api/agent/availability pro volné termíny, (4) POST /api/agent/book s údaji zákazníka – zákazník dostane SMS s OTP kódem, (5) POST /api/agent/verify pro potvrzení rezervace OTP kódem. Bez SMS ověření nelze rezervaci dokončit.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://studionatali-ricany.cz/.well-known/openapi.json"
+  },
+  "logo_url": "https://studionatali-ricany.cz/images/logo.png",
+  "contact_email": "info@studionatali-ricany.cz",
+  "legal_info_url": "https://studionatali-ricany.cz/obchodni-podminky"
+}

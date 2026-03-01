@@ -1,5 +1,5 @@
 import type { FC } from 'hono/jsx';
-import type { Service, User, ServiceCategory } from '../types';
+import type { Service, PublicUser, ServiceCategory } from '../types';
 import { BaseLayout } from './Layout';
 import { getTranslations } from '../lib/i18n';
 
@@ -7,7 +7,7 @@ const t = getTranslations();
 
 // ============ TYPES ============
 interface ReservationWizardProps {
-  workers: User[];
+  workers: PublicUser[];
   services: Service[];
   categories: ServiceCategory[];
   bookingWindow: number;
@@ -131,30 +131,66 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
                   </button>
                 </div>
                 <div class="grid sm:grid-cols-2 gap-4">
-                  {workers.map(worker => (
-                    <button
-                      type="button"
-                      class="worker-card card p-6 text-left hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer"
-                      data-worker-id={worker.id}
-                      data-worker-name={worker.name}
-                    >
-                      <div class="flex items-center gap-4">
-                        <div class="w-16 h-16 rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
-                          {worker.image ? (
+                  {workers.map(worker => {
+                    const isExternal = worker.role === 'external';
+                    if (isExternal) {
+                      return (
+                        <a
+                          href="https://www.facebook.com/StudioNatali"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="worker-card worker-external card p-6 text-left hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer block"
+                          data-worker-id={worker.id}
+                          data-worker-name={worker.name}
+                          data-worker-external="true"
+                        >
+                          <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
+                              {worker.image ? (
+                                <img src={worker.image} alt={worker.name} class="w-full h-full object-cover" loading="lazy" decoding="async" onerror={`this.onerror=null; this.src='${fallbackPhoto}'; this.classList.add('object-contain');`} />
+                              ) : (
+                                <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 text-primary-600 dark:text-primary-300">
+                                  <i data-lucide="image" class="w-8 h-8"></i>
+                                </div>
+                              )}
+                            </div>
+                            <div class="flex-1">
+                              <h3 class="font-semibold text-neutral-900 dark:text-white">{worker.name}</h3>
+                              <p class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2">{worker.bio || t.team.role_label}</p>
+                            </div>
+                          </div>
+                          <div class="mt-3 ml-20 flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300 font-medium">
+                            <i data-lucide="facebook" class="w-4 h-4"></i>
+                            Rezervace pouze přes Facebook
+                          </div>
+                        </a>
+                      );
+                    }
+                    return (
+                      <button
+                        type="button"
+                        class="worker-card card p-6 text-left hover:ring-2 hover:ring-primary-500 transition-all cursor-pointer w-full"
+                        data-worker-id={worker.id}
+                        data-worker-name={worker.name}
+                      >
+                        <div class="flex items-center gap-4">
+                          <div class="w-16 h-16 rounded-full overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
+                            {worker.image ? (
                               <img src={worker.image} alt={worker.name} class="w-full h-full object-cover" loading="lazy" decoding="async" onerror={`this.onerror=null; this.src='${fallbackPhoto}'; this.classList.add('object-contain');`} />
-                          ) : (
+                            ) : (
                               <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 text-primary-600 dark:text-primary-300">
                                 <i data-lucide="image" class="w-8 h-8"></i>
-                            </div>
-                          )}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <h3 class="font-semibold text-neutral-900 dark:text-white">{worker.name}</h3>
+                            <p class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2">{worker.bio || t.team.role_label}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 class="font-semibold text-neutral-900 dark:text-white">{worker.name}</h3>
-                          <p class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2">{worker.bio || t.team.role_label}</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

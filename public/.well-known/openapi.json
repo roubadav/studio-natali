@@ -1,0 +1,280 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Studio Natali – Booking API",
+    "description": "Veřejné API pro rezervaci termínu v kadeřnickém salonu Studio Natali v Říčanech u Prahy. Rezervace je chráněna SMS OTP ověřením zákazníka.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Studio Natali",
+      "email": "info@studionatali-ricany.cz",
+      "url": "https://studionatali-ricany.cz"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://studionatali-ricany.cz",
+      "description": "Produkční server"
+    }
+  ],
+  "paths": {
+    "/api/agent/services": {
+      "get": {
+        "operationId": "getServices",
+        "summary": "Seznam dostupných služeb",
+        "description": "Vrátí seznam všech aktivních kadeřnických služeb s cenami, dobou trvání a ID. Použij ID služby při vytváření rezervace.",
+        "responses": {
+          "200": {
+            "description": "Seznam služeb",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "services": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Service" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/workers": {
+      "get": {
+        "operationId": "getWorkers",
+        "summary": "Seznam kadeřnic",
+        "description": "Vrátí seznam kadeřnic dostupných pro online rezervaci.",
+        "responses": {
+          "200": {
+            "description": "Seznam kadeřnic",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "workers": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Worker" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/availability": {
+      "get": {
+        "operationId": "getAvailability",
+        "summary": "Dostupné časy pro daný den",
+        "description": "Vrátí seznam volných časových slotů pro zvolenou kadeřnici, datum a celkovou délku služeb.",
+        "parameters": [
+          {
+            "name": "workerId",
+            "in": "query",
+            "required": true,
+            "description": "ID kadeřnice (z /api/agent/workers)",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "Datum ve formátu YYYY-MM-DD",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "duration",
+            "in": "query",
+            "required": true,
+            "description": "Celková délka rezervace v minutách (součet dob trvání zvolených služeb)",
+            "schema": { "type": "integer", "minimum": 15 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dostupné sloty",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "date": { "type": "string" },
+                    "slots": {
+                      "type": "array",
+                      "items": { "type": "string", "example": "10:00" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/book": {
+      "post": {
+        "operationId": "createBooking",
+        "summary": "Vytvoř rezervaci (krok 1/2)",
+        "description": "Vytvoří nepotvrzenou rezervaci a odešle SMS s 6místným OTP kódem na telefonní číslo zákazníka. Rezervace bez ověření SMS kódem do 30 minut vyprší. Vrátí verification_token potřebný pro krok 2.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BookingRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SMS odeslána, čeká na ověření",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingPending" }
+              }
+            }
+          },
+          "400": { "description": "Chybné vstupní údaje" },
+          "409": { "description": "Termín již není k dispozici" },
+          "429": { "description": "Příliš mnoho pokusů, zkuste za chvíli" }
+        }
+      }
+    },
+    "/api/agent/verify": {
+      "post": {
+        "operationId": "verifyBooking",
+        "summary": "Potvrď rezervaci OTP kódem (krok 2/2)",
+        "description": "Ověří 6místný OTP kód zaslaný SMS zákazníkovi a dokončí rezervaci. Kód vyprší za 30 minut, jsou povoleny max. 3 pokusy.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VerifyRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Rezervace úspěšně vytvořena",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingConfirmed" }
+              }
+            }
+          },
+          "400": { "description": "Neplatný nebo vypršený kód" },
+          "429": { "description": "Příliš mnoho chybných pokusů" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Service": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string", "example": "Dámský střih" },
+          "description": { "type": "string" },
+          "price": { "type": "number", "example": 400 },
+          "price_type": {
+            "type": "string",
+            "enum": ["fixed", "starts_at", "hourly", "consultation"],
+            "description": "fixed = pevná cena, starts_at = od dané částky"
+          },
+          "duration": { "type": "integer", "description": "Délka služby v minutách" },
+          "category": { "type": "string", "example": "Střih" },
+          "worker_name": { "type": "string", "example": "Vilma Strakatá" }
+        }
+      },
+      "Worker": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string", "example": "Vilma Strakatá" },
+          "bio": { "type": "string" },
+          "slug": { "type": "string" }
+        }
+      },
+      "BookingRequest": {
+        "type": "object",
+        "required": ["workerId", "date", "time", "customerName", "customerPhone", "customerEmail", "items", "termsAccepted"],
+        "properties": {
+          "workerId": { "type": "integer", "description": "ID kadeřnice" },
+          "date": { "type": "string", "format": "date", "example": "2026-03-15" },
+          "time": { "type": "string", "example": "10:00", "description": "Čas začátku ve formátu HH:MM" },
+          "customerName": { "type": "string", "example": "Jana Novotná" },
+          "customerPhone": {
+            "type": "string",
+            "example": "+420 777 123 456",
+            "description": "Telefonní číslo zákazníka – na toto číslo bude odeslán SMS OTP kód"
+          },
+          "customerEmail": { "type": "string", "format": "email", "example": "jana@example.cz" },
+          "items": {
+            "type": "array",
+            "description": "Zvolené služby",
+            "items": {
+              "type": "object",
+              "required": ["serviceId", "quantity"],
+              "properties": {
+                "serviceId": { "type": "integer" },
+                "quantity": { "type": "integer", "default": 1 }
+              }
+            }
+          },
+          "note": { "type": "string", "description": "Volitelná poznámka zákazníka" },
+          "termsAccepted": {
+            "type": "boolean",
+            "description": "Zákazník musí souhlasit s obchodními podmínkami (https://studionatali-ricany.cz/obchodni-podminky)"
+          }
+        }
+      },
+      "BookingPending": {
+        "type": "object",
+        "properties": {
+          "verification_token": {
+            "type": "string",
+            "description": "Token potřebný pro krok 2 (POST /api/agent/verify). Platný 30 minut."
+          },
+          "message": { "type": "string" },
+          "expires_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "VerifyRequest": {
+        "type": "object",
+        "required": ["verification_token", "otp_code"],
+        "properties": {
+          "verification_token": {
+            "type": "string",
+            "description": "Token z odpovědi POST /api/agent/book"
+          },
+          "otp_code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$",
+            "description": "6místný kód z SMS zákazníka"
+          }
+        }
+      },
+      "BookingConfirmed": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "reservation_id": { "type": "integer" },
+          "date": { "type": "string" },
+          "time": { "type": "string" },
+          "worker": { "type": "string" },
+          "services": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["pending_approval", "confirmed"],
+            "description": "pending_approval = čeká na schválení kadeřnicí, confirmed = automaticky potvrzeno"
+          }
+        }
+      }
+    }
+  }
+}

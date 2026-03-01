@@ -4,13 +4,13 @@ import { BaseLayout } from './Layout';
 
 // ============ ADMIN LAYOUT ============
 
-export const AdminLayout: FC<PropsWithChildren<{ title?: string }>> = ({ children, title }) => {
+export const AdminLayout: FC<PropsWithChildren<{ title?: string; userRole?: string }>> = ({ children, title, userRole }) => {
   const navItems = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: 'layout-dashboard' },
     { name: 'Rezervace', href: '/admin/rezervace', icon: 'calendar' },
     { name: 'Služby', href: '/admin/sluzby', icon: 'scissors' },
     { name: 'Galerie', href: '/admin/galerie', icon: 'image' },
-    { name: 'Uživatelé', href: '/admin/uzivatele', icon: 'users' },
+    ...(userRole === 'admin' || userRole === 'superadmin' ? [{ name: 'Uživatelé', href: '/admin/uzivatele', icon: 'users' }] : []),
     { name: 'Pracovní doba', href: '/admin/pracovni-doba', icon: 'clock' },
     { name: 'Nastavení', href: '/admin/nastaveni', icon: 'settings' },
   ];
@@ -20,6 +20,15 @@ export const AdminLayout: FC<PropsWithChildren<{ title?: string }>> = ({ childre
       <div class="min-h-screen bg-neutral-100 dark:bg-neutral-900">
         {/* Global Styles */}
         <style dangerouslySetInnerHTML={{ __html: `
+          /* Admin Layout - sidebar & main content */
+          #admin-sidebar { position: fixed; left: 0; top: 0; height: 100%; width: 16rem; z-index: 50; transform: translateX(-100%); transition: transform 0.3s; }
+          #admin-sidebar.sidebar-open { transform: translateX(0); }
+          #admin-main { margin-left: 0; padding-top: 5rem; overflow-x: hidden; }
+          @media (min-width: 1024px) {
+            #admin-sidebar { transform: translateX(0); }
+            #admin-main { margin-left: 16rem; padding-top: 2rem; }
+          }
+
           /* Scrollbars */
           .modal-container::-webkit-scrollbar { width: 8px; }
           .modal-container::-webkit-scrollbar-track { background: transparent; }
@@ -53,7 +62,7 @@ export const AdminLayout: FC<PropsWithChildren<{ title?: string }>> = ({ childre
         `}} />
 
         {/* Sidebar */}
-        <aside id="admin-sidebar" class="fixed left-0 top-0 h-full w-64 bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <aside id="admin-sidebar" class="bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 flex flex-col">
           {/* Logo */}
           <div class="h-20 flex items-center px-6 border-b border-neutral-200 dark:border-neutral-700">
             <a href="/" class="flex items-center">
@@ -102,7 +111,7 @@ export const AdminLayout: FC<PropsWithChildren<{ title?: string }>> = ({ childre
         </div>
 
         {/* Main Content */}
-        <main class="ml-0 lg:ml-64 p-4 md:p-6 lg:p-8 pt-20 lg:pt-8 transition-[margin] duration-300">
+        <main id="admin-main" class="p-3 sm:p-4 md:p-6 lg:p-8">
           {children}
         </main>
         
@@ -187,12 +196,12 @@ export const AdminLayout: FC<PropsWithChildren<{ title?: string }>> = ({ childre
           window.toggleAdminSidebar = () => {
             const sidebar = document.getElementById('admin-sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            const isOpen = !sidebar.classList.contains('-translate-x-full');
+            const isOpen = sidebar.classList.contains('sidebar-open');
             if (isOpen) {
-              sidebar.classList.add('-translate-x-full');
+              sidebar.classList.remove('sidebar-open');
               overlay.classList.add('hidden');
             } else {
-              sidebar.classList.remove('-translate-x-full');
+              sidebar.classList.add('sidebar-open');
               overlay.classList.remove('hidden');
             }
           };
@@ -229,14 +238,22 @@ export const AdminLoginPage: FC = () => {
             
             <div>
               <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Heslo</label>
-              <input 
-                type="password" 
-                name="password" 
-                class="form-input" 
-                required 
-                placeholder="••••••••"
-                autocomplete="current-password"
-              />
+              <div class="relative">
+                <input 
+                  type="password" 
+                  name="password" 
+                  id="login-password"
+                  class="form-input" 
+                  required 
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                  style="padding-right: 2.5rem"
+                />
+                <button type="button" id="toggle-password" class="absolute right-3 top-1/2" style="transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 0; color: var(--color-text-muted, #737373);">
+                  <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg id="eye-off-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>
+                </button>
+              </div>
             </div>
             
             <div id="login-error" class="hidden p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-lg text-sm"></div>
@@ -253,11 +270,61 @@ export const AdminLoginPage: FC = () => {
       </div>
       
       <script dangerouslySetInnerHTML={{ __html: `
+        // Password visibility toggle
+        document.getElementById('toggle-password').addEventListener('click', function() {
+          const input = document.getElementById('login-password');
+          const eyeIcon = document.getElementById('eye-icon');
+          const eyeOffIcon = document.getElementById('eye-off-icon');
+          if (input.type === 'password') {
+            input.type = 'text';
+            eyeIcon.style.display = 'none';
+            eyeOffIcon.style.display = 'block';
+          } else {
+            input.type = 'password';
+            eyeIcon.style.display = 'block';
+            eyeOffIcon.style.display = 'none';
+          }
+        });
+
+        // Progressive lockout
+        let failedAttempts = parseInt(sessionStorage.getItem('loginFails') || '0');
+        let lockedUntil = parseInt(sessionStorage.getItem('loginLockedUntil') || '0');
+
+        function getLockoutSeconds(fails) {
+          if (fails < 3) return 0;
+          if (fails < 5) return 120;   // 2 min
+          if (fails < 8) return 300;   // 5 min
+          return 600;                  // 10 min max
+        }
+
+        function checkLockout() {
+          const now = Date.now();
+          if (lockedUntil > now) {
+            const secs = Math.ceil((lockedUntil - now) / 1000);
+            const mins = Math.floor(secs / 60);
+            const s = secs % 60;
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.textContent = 'Příliš mnoho pokusů. Zkuste to za ' + (mins > 0 ? mins + ' min ' : '') + s + ' s.';
+            errorDiv.classList.remove('hidden');
+            return false;
+          }
+          // Lockout expired — reset counters
+          if (lockedUntil > 0) {
+            failedAttempts = 0;
+            lockedUntil = 0;
+            sessionStorage.removeItem('loginFails');
+            sessionStorage.removeItem('loginLockedUntil');
+          }
+          return true;
+        }
+
         document.getElementById('login-form').addEventListener('submit', async (e) => {
           e.preventDefault();
           
           const errorDiv = document.getElementById('login-error');
           errorDiv.classList.add('hidden');
+
+          if (!checkLockout()) return;
           
           const formData = new FormData(e.target);
           
@@ -274,15 +341,30 @@ export const AdminLoginPage: FC = () => {
             const data = await response.json();
             
             if (!response.ok) {
+              failedAttempts++;
+              sessionStorage.setItem('loginFails', String(failedAttempts));
+              const lockSecs = getLockoutSeconds(failedAttempts);
+              if (lockSecs > 0) {
+                lockedUntil = Date.now() + lockSecs * 1000;
+                sessionStorage.setItem('loginLockedUntil', String(lockedUntil));
+                const mins = Math.floor(lockSecs / 60);
+                throw new Error('Příliš mnoho neúspěšných pokusů. Zkuste to za ' + mins + ' minut.');
+              }
               throw new Error(data.error || 'Přihlášení selhalo');
             }
-            
+
+            // Reset on success
+            sessionStorage.removeItem('loginFails');
+            sessionStorage.removeItem('loginLockedUntil');
             window.location.href = '/admin/dashboard';
           } catch (error) {
             errorDiv.textContent = error.message;
             errorDiv.classList.remove('hidden');
           }
         });
+
+        // Check lockout on page load
+        checkLockout();
       `}} />
     </div>
   );

@@ -57,13 +57,24 @@ const app = new Hono<{ Bindings: Env }>();
 // Middleware
 app.use('*', logger());
 app.use('*', secureHeaders());
+
+// AI agent API – povoleno z libovolné origin (bez cookies)
+app.use('/api/agent/*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Accept'],
+}));
+
+// Ostatní API – pouze povolené origins (se session cookies)
 app.use('/api/*', cors({
   origin: (origin) => {
     // Allow same-origin requests and configured APP_URL
     if (!origin) return origin; // same-origin or server-to-server
     const allowed = [
-      'https://studionatali.cz',
-      'https://www.studionatali.cz',
+      'https://studionatali-ricany.cz',
+      'https://www.studionatali-ricany.cz',
+      'https://studionatali-ricany.cz',
+      'https://www.studionatali-ricany.cz',
       'http://localhost:8787',
       'http://127.0.0.1:8787',
     ];
@@ -71,6 +82,41 @@ app.use('/api/*', cors({
   },
   credentials: true,
 }));
+
+// Rate limiting pro AI agent booking API
+// POST /api/agent/book – max 3 pokusy za 60 minut na IP (ochrana před spamem)
+app.use('/api/agent/book', async (c, next) => {
+  if (c.req.method === 'POST') {
+    if (isLocalRequest(c.req.url)) {
+      await next();
+      return;
+    }
+    const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+    const { allowed, remaining } = await rateLimit(`agent-book:${ip}`, 3, 3600);
+    if (!allowed) {
+      return c.json({ error: 'Příliš mnoho pokusů o rezervaci. Zkuste to za hodinu.' }, 429);
+    }
+    c.header('X-RateLimit-Remaining', String(remaining));
+  }
+  await next();
+});
+
+// POST /api/agent/verify – max 10 pokusů za 60 minut na IP
+app.use('/api/agent/verify', async (c, next) => {
+  if (c.req.method === 'POST') {
+    if (isLocalRequest(c.req.url)) {
+      await next();
+      return;
+    }
+    const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
+    const { allowed, remaining } = await rateLimit(`agent-verify:${ip}`, 10, 3600);
+    if (!allowed) {
+      return c.json({ error: 'Příliš mnoho pokusů o ověření. Zkuste to za hodinu.' }, 429);
+    }
+    c.header('X-RateLimit-Remaining', String(remaining));
+  }
+  await next();
+});
 
 // Rate limiting on sensitive endpoints
 app.use('/api/auth', async (c, next) => {
@@ -80,9 +126,9 @@ app.use('/api/auth', async (c, next) => {
       return;
     }
     const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
-    const { allowed, remaining } = await rateLimit(`auth:${ip}`, 5, 900); // 5 per 15min
+    const { allowed, remaining } = await rateLimit(`auth:${ip}`, 8, 600); // 8 per 10min
     if (!allowed) {
-      return c.json({ error: 'Příliš mnoho pokusů o přihlášení. Zkuste to za 15 minut.' }, 429);
+      return c.json({ error: 'Příliš mnoho pokusů o přihlášení. Zkuste to za pár minut.' }, 429);
     }
     c.header('X-RateLimit-Remaining', String(remaining));
   }

@@ -1,6 +1,6 @@
 import type { FC } from 'hono/jsx';
 import { getTranslations } from '../lib/i18n';
-import type { User, ServiceWithCategory, GalleryImage } from '../types';
+import type { User, GalleryImage, ServiceCategory } from '../types';
 
 const t = getTranslations();
 
@@ -18,44 +18,6 @@ const fallbackPhoto = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
     <path d="M60 130l25-25 20 20 15-15 30 30" fill="none" stroke="#8a654b" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
   </svg>`
 )}`;
-
-// Blob mask styles for organic photo frames
-const blobStyles = `
-  .blob-mask-1 {
-    clip-path: polygon(8% 5%, 20% 2%, 35% 0%, 50% 3%, 65% 1%, 80% 4%, 92% 8%, 97% 20%, 100% 35%, 98% 50%, 100% 65%, 96% 80%, 90% 92%, 80% 97%, 65% 100%, 50% 98%, 35% 100%, 20% 96%, 8% 90%, 3% 78%, 0% 65%, 2% 50%, 0% 35%, 4% 20%);
-    will-change: auto;
-    transform: translateZ(0);
-  }
-  .blob-mask-2 {
-    clip-path: polygon(10% 0%, 25% 3%, 40% 0%, 55% 4%, 70% 0%, 85% 5%, 95% 12%, 100% 28%, 97% 45%, 100% 60%, 95% 75%, 100% 90%, 90% 100%, 75% 97%, 60% 100%, 45% 96%, 30% 100%, 15% 95%, 5% 88%, 0% 72%, 5% 55%, 0% 40%, 5% 25%, 0% 12%);
-    will-change: auto;
-    transform: translateZ(0);
-  }
-  .blob-mask-3 {
-    clip-path: polygon(5% 8%, 18% 0%, 32% 5%, 48% 0%, 62% 6%, 78% 0%, 92% 10%, 100% 25%, 95% 42%, 100% 58%, 94% 75%, 100% 90%, 88% 100%, 72% 95%, 55% 100%, 40% 94%, 25% 100%, 10% 92%, 0% 78%, 6% 60%, 0% 45%, 8% 28%);
-    will-change: auto;
-    transform: translateZ(0);
-  }
-  .blob-frame {
-    position: relative;
-    background: transparent;
-  }
-  .blob-frame::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: transparent;
-    pointer-events: none;
-    z-index: 1;
-  }
-  .blob-frame::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 2;
-  }
-`;
 
 // BlobImage component
 const BlobImage: FC<{ src: string; alt: string; variant?: 1 | 2 | 3; className?: string }> = ({ src, alt, variant = 1, className = '' }) => {
@@ -77,7 +39,7 @@ const BlobImage: FC<{ src: string; alt: string; variant?: 1 | 2 | 3; className?:
 
 export const HeroSection: FC = () => {
   return (
-    <section class="relative min-h-[calc(100vh-5rem)] flex items-center overflow-hidden pt-6 bg-accent-cream dark:bg-neutral-900 animate-on-scroll" id="home">
+    <section class="relative min-h-[calc(100vh-5rem)] flex items-center overflow-hidden pt-6 pb-12 sm:pb-6 bg-accent-cream dark:bg-neutral-900 animate-on-scroll" id="home">
       {/* Background decoration */}
       <div class="absolute bottom-0 left-0 right-0 h-48 opacity-10">
         <svg viewBox="0 0 1440 200" class="w-full h-full" preserveAspectRatio="none">
@@ -90,7 +52,7 @@ export const HeroSection: FC = () => {
       </div>
       
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-8 lg:py-12">
-        <div class="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div class="grid min-[880px]:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Text Content */}
           <div class="max-w-xl animate-fade-in">
             <h1 class="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight mb-6 leading-tight text-neutral-900 dark:text-white font-display">
@@ -111,8 +73,8 @@ export const HeroSection: FC = () => {
             </div>
           </div>
           
-          {/* Hero Image */}
-          <div class="relative hidden md:block animate-slide-up">
+          {/* Hero Image - visible only when 2 columns fit (880px+) */}
+          <div class="relative hidden min-[880px]:block animate-slide-up">
             <div class="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl">
               <img
                 src="/images/hero.png"
@@ -182,14 +144,12 @@ export const AboutSection: FC = () => {
 
 // ============ SERVICES SECTION ============
 
-export const ServicesSection: FC = () => {
-  const services = [
-    { id: 'strih', ...t.services_section.haircut, image: '/images/services/strih.png' },
-    { id: 'barva', ...t.services_section.color, image: '/images/services/barva.png' },
-    { id: 'pece', ...t.services_section.care, image: '/images/services/pece.png' },
-    { id: 'styling', ...t.services_section.styling, image: '/images/services/styling.png' },
-  ];
-  
+export const ServicesSection: FC<{ categories: ServiceCategory[] }> = ({ categories }) => {
+  // Determine grid columns based on number of categories
+  const gridCols = categories.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' 
+    : categories.length === 3 ? 'grid-cols-2 lg:grid-cols-3' 
+    : 'grid-cols-2 lg:grid-cols-4';
+
   return (
     <section class="section bg-accent-cream dark:bg-neutral-900 animate-on-scroll" id="sluzby">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -200,21 +160,29 @@ export const ServicesSection: FC = () => {
         </div>
         
         {/* Services Grid */}
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map(service => (
+        <div class={`grid ${gridCols} gap-6`}>
+          {categories.map(cat => (
             <a href="/rezervace" class="card p-6 text-center group">
               <div class="relative w-full aspect-square mb-4 rounded-xl overflow-hidden">
-                <img
-                  src={service.image}
-                  alt={service.name}
-                  class="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                  onerror={`this.onerror=null; this.src='${fallbackPhoto}'; this.classList.add('object-contain');`}
-                />
+                {cat.image ? (
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    class="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    onerror={`this.onerror=null; this.src='${fallbackPhoto}'; this.classList.add('object-contain');`}
+                  />
+                ) : (
+                  <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800">
+                    <i data-lucide={cat.icon || 'scissors'} class="w-16 h-16 text-primary-600 dark:text-primary-300"></i>
+                  </div>
+                )}
               </div>
-              <h3 class="text-xl font-medium mb-2 text-neutral-900 dark:text-white font-display">{service.name}</h3>
-              <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-4">{service.description}</p>
+              <h3 class="text-xl font-medium mb-2 text-neutral-900 dark:text-white font-display">{cat.name}</h3>
+              {cat.description && (
+                <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-4">{cat.description}</p>
+              )}
               <span class="text-primary-600 dark:text-primary-400 font-medium text-sm inline-flex items-center justify-center gap-1 transition-transform duration-200 group-hover:translate-x-1">
                 {t.common.view}
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
@@ -277,7 +245,7 @@ export const TeamSection: FC<{ workers: Omit<User, 'password_hash'>[] }> = ({ wo
                 <p class="text-primary-600 dark:text-primary-400 font-medium mb-4">{t.team.role_label}</p>
                 <p class="text-neutral-600 dark:text-neutral-300 mb-4 line-clamp-3">{member.bio}</p>
                 
-                {member.slug === 'natalie' ? (
+                {member.role === 'external' ? (
                   <a href="https://www.facebook.com/StudioNatali" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition-colors" style="background-color: #1877F2;" onmouseover="this.style.backgroundColor='#1565C0'" onmouseout="this.style.backgroundColor='#1877F2'">
                     <i data-lucide="facebook" class="w-5 h-5"></i>
                     Rezervovat přes Facebook

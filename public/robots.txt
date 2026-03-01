@@ -8,5 +8,42 @@ Disallow: /test
 Disallow: /api/
 Disallow: /partials/
 
+# AI agent booking API is intentionally public
+Allow: /api/agent/
+
+# AI crawlers – explicitně povoleno (výchozí chování je Allow: /)
+# GPTBot (ChatGPT), ClaudeBot, PerplexityBot, Googlebot-Extended, Applebot-Extended
+User-agent: GPTBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Allow: /api/agent/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Allow: /api/agent/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Allow: /api/agent/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin/
+
+User-agent: Googlebot-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Soubory pro AI agenty
+Allow: /llms.txt
+Allow: /.well-known/
+
 # Sitemap
 Sitemap: https://studionatali-ricany.cz/sitemap.xml

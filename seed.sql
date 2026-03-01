@@ -22,9 +22,12 @@ INSERT OR IGNORE INTO settings (key, value, description, category) VALUES
 
 -- Uživatelé (heslo je hashované - pro produkci změnit!)
 -- Password: admin123 -> hash generován pomocí PBKDF2 (pro produkci změnit!)
+-- POZN: Natálie je na hlavní stránce (tým), ale NEMÁ služby → NEzobrazí se v rezervacích.
+--       Natálie přijímá rezervace přes Facebook, nikoli přes tento web.
+--       V rezervačním wizardu se zobrazí pouze Vilma (má přiřazené služby).
 INSERT OR IGNORE INTO users (email, password_hash, name, slug, role, bio, phone, image, color) VALUES
 ('admin0', 'pbkdf2:4G8VyW4_I6T66rwkwmesXg:_KFQXJfHU8xT6J1a86YdJYGM-Kc_qXrU8l3OqqzJGW8', 'Administrátor', 'admin', 'superadmin', 'Správce systému', '', '', '#000000'),
-('natali0', 'pbkdf2:4G8VyW4_I6T66rwkwmesXg:_KFQXJfHU8xT6J1a86YdJYGM-Kc_qXrU8l3OqqzJGW8', 'Natálie', 'natalie', 'user', 'Majitelka salonu.', '+420 774 889 606', '/images/team/natalie.jpg', '#ec4899'),
+('natali0', 'pbkdf2:4G8VyW4_I6T66rwkwmesXg:_KFQXJfHU8xT6J1a86YdJYGM-Kc_qXrU8l3OqqzJGW8', 'Natálie', 'natalie', 'user', 'Majitelka salonu. Rezervace přes Facebook.', '+420 774 889 606', '/images/team/natalie.jpg', '#ec4899'),
 ('info@studionatali-ricany.cz', 'pbkdf2:4G8VyW4_I6T66rwkwmesXg:_KFQXJfHU8xT6J1a86YdJYGM-Kc_qXrU8l3OqqzJGW8', 'Vilma Strakatá', 'vilma', 'user', 'Specialistka na barvení a moderní střihy.', '+420 728 814 712', '/images/team/vilma.jpg', '#8b5cf6');
 
 -- Oprava legacy účtů po migraci (bcrypt + starý login vilma0)
@@ -37,27 +40,27 @@ UPDATE users
 SET email = 'info@studionatali-ricany.cz'
 WHERE slug = 'vilma' AND email = 'vilma0';
 
--- Pracovní doba pro Vilmu Strakatou (user_id = 3)
-INSERT OR IGNORE INTO working_hours_templates (user_id, day_of_week, start_time, end_time, break_start, break_end, is_day_off) VALUES
-(3, 1, '09:00', '17:00', '12:00', '12:30', 0),
-(3, 2, '09:00', '17:00', '12:00', '12:30', 0),
-(3, 3, '09:00', '17:00', '12:00', '12:30', 0),
-(3, 4, '09:00', '17:00', '12:00', '12:30', 0),
-(3, 5, '09:00', '17:00', '12:00', '12:30', 0),
-(3, 6, NULL, NULL, NULL, NULL, 1),
-(3, 0, NULL, NULL, NULL, NULL, 1);
+-- Pracovní doba pro Vilmu Strakatou (dynamické user_id podle slugu)
+INSERT OR IGNORE INTO working_hours_templates (user_id, day_of_week, start_time, end_time, break_start, break_end, is_day_off)
+SELECT id, 1, '09:00', '17:00', '12:00', '12:30', 0 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 2, '09:00', '17:00', '12:00', '12:30', 0 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 3, '09:00', '17:00', '12:00', '12:30', 0 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 4, '09:00', '17:00', '12:00', '12:30', 0 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 5, '09:00', '17:00', '12:00', '12:30', 0 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 6, NULL, NULL, NULL, NULL, 1 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 0, NULL, NULL, NULL, NULL, 1 FROM users WHERE slug = 'vilma';
 
--- Služby pro Vilmu Strakatou (user_id = 3)
-INSERT OR IGNORE INTO services (user_id, category_id, name, description, price, price_type, duration, is_active, sort_order) VALUES
-(3, 1, 'Dámský střih', 'Kompletní střih včetně mytí a foukané', 400, 'fixed', 60, 1, 1),
-(3, 1, 'Pánský střih', 'Klasický pánský střih', 280, 'fixed', 30, 1, 2),
-(3, 1, 'Dětský střih', 'Střih pro děti do 12 let', 250, 'fixed', 30, 1, 3),
-(3, 2, 'Barvení - krátké vlasy', 'Barvení krátkých vlasů', 800, 'starts_at', 90, 1, 1),
-(3, 2, 'Barvení - dlouhé vlasy', 'Barvení dlouhých vlasů', 1200, 'starts_at', 120, 1, 2),
-(3, 2, 'Melír', 'Profesionální melír', 1500, 'starts_at', 150, 1, 3),
-(3, 2, 'Balayage', 'Moderní technika barvení', 1800, 'starts_at', 180, 1, 4),
-(3, 3, 'Keratinové ošetření', 'Hloubková regenerace vlasů', 2000, 'starts_at', 120, 1, 1),
-(3, 4, 'Společenský účes', 'Účes pro speciální příležitosti', 800, 'starts_at', 60, 1, 1);
+-- Služby pro Vilmu Strakatou (dynamické user_id podle slugu)
+INSERT OR IGNORE INTO services (user_id, category_id, name, description, price, price_type, duration, is_active, sort_order)
+SELECT id, 1, 'Dámský střih', 'Kompletní střih včetně mytí a foukané', 400, 'fixed', 60, 1, 1 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 1, 'Pánský střih', 'Klasický pánský střih', 280, 'fixed', 30, 1, 2 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 1, 'Dětský střih', 'Střih pro děti do 12 let', 250, 'fixed', 30, 1, 3 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 2, 'Barvení - krátké vlasy', 'Barvení krátkých vlasů', 800, 'starts_at', 90, 1, 1 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 2, 'Barvení - dlouhé vlasy', 'Barvení dlouhých vlasů', 1200, 'starts_at', 120, 1, 2 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 2, 'Melír', 'Profesionální melír', 1500, 'starts_at', 150, 1, 3 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 2, 'Balayage', 'Moderní technika barvení', 1800, 'starts_at', 180, 1, 4 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 3, 'Keratinové ošetření', 'Hloubková regenerace vlasů', 2000, 'starts_at', 120, 1, 1 FROM users WHERE slug = 'vilma'
+UNION ALL SELECT id, 4, 'Společenský účes', 'Účes pro speciální příležitosti', 800, 'starts_at', 60, 1, 1 FROM users WHERE slug = 'vilma';
 
 -- Galerie
 INSERT OR IGNORE INTO gallery_images (url, alt_text, slot_index) VALUES

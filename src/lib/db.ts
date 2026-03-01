@@ -1,4 +1,4 @@
-import type { Env, User, ServiceWithCategory, Reservation, ReservationWithItems, ReservationItemWithService, WorkingHoursTemplate, WorkingHoursOverride, ServiceCategory, Setting, GalleryImage } from '../types';
+import type { User, PublicUser, ServiceWithCategory, Reservation, ReservationWithItems, ReservationItemWithService, WorkingHoursTemplate, WorkingHoursOverride, ServiceCategory, Setting, GalleryImage } from '../types';
 import { addMinutes, format, parse, isBefore, isAfter } from 'date-fns';
 
 const parseLocalDate = (dateStr: string) => {
@@ -20,23 +20,23 @@ export async function getUserById(db: D1Database, id: number): Promise<User | nu
   return result || null;
 }
 
-export async function getAllUsers(db: D1Database): Promise<Omit<User, 'password_hash'>[]> {
+export async function getAllUsers(db: D1Database): Promise<PublicUser[]> {
   const result = await db.prepare(`
     SELECT id, email, name, slug, role, bio, phone, image, color, 
            notification_email, notification_phone, is_active, created_at, updated_at 
     FROM users
-  `).all<Omit<User, 'password_hash'>>();
+  `).all<PublicUser>();
   return result.results;
 }
 
-export async function getWorkers(db: D1Database): Promise<Omit<User, 'password_hash'>[]> {
+export async function getWorkers(db: D1Database): Promise<PublicUser[]> {
   const result = await db.prepare(`
     SELECT id, email, name, slug, role, bio, phone, image, color, 
            notification_email, notification_phone, is_active, created_at, updated_at 
     FROM users 
     WHERE is_active = 1 AND slug != 'admin'
     ORDER BY role DESC, name ASC
-  `).all<Omit<User, 'password_hash'>>();
+  `).all<PublicUser>();
   return result.results;
 }
 
@@ -46,7 +46,7 @@ export async function getBookableWorkers(db: D1Database): Promise<Omit<User, 'pa
            u.notification_email, u.notification_phone, u.is_active, u.created_at, u.updated_at 
     FROM users u
     INNER JOIN services s ON s.user_id = u.id AND s.is_active = 1
-    WHERE u.is_active = 1 AND u.slug != 'admin'
+    WHERE u.is_active = 1 AND u.slug != 'admin' AND u.role != 'external'
     ORDER BY u.name ASC
   `).all<Omit<User, 'password_hash'>>();
   return result.results;
@@ -59,7 +59,7 @@ export async function createUser(
     password_hash: string;
     name: string;
     slug: string;
-    role?: 'user' | 'admin' | 'superadmin';
+    role?: 'user' | 'admin' | 'superadmin' | 'external';
     bio?: string | null;
     phone?: string | null;
     image?: string | null;
@@ -812,14 +812,14 @@ export async function deleteService(db: D1Database, id: number): Promise<boolean
 
 export async function createCategory(
   db: D1Database,
-  data: { name: string; icon?: string; sort_order?: number }
+  data: { name: string; icon?: string; image?: string; sort_order?: number }
 ): Promise<ServiceCategory> {
   const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   
   await db.prepare(`
-    INSERT INTO service_categories (name, slug, icon, sort_order)
-    VALUES (?, ?, ?, ?)
-  `).bind(data.name, slug, data.icon || 'scissors', data.sort_order || 0).run();
+    INSERT INTO service_categories (name, slug, icon, image, sort_order)
+    VALUES (?, ?, ?, ?, ?)
+  `).bind(data.name, slug, data.icon || 'scissors', data.image || null, data.sort_order || 0).run();
   
   const result = await db.prepare('SELECT * FROM service_categories WHERE slug = ?').bind(slug).first<ServiceCategory>();
   return result!;

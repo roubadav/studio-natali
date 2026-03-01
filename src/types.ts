@@ -22,7 +22,7 @@ export interface User {
   password_hash: string;
   name: string;
   slug: string;
-  role: 'user' | 'admin' | 'superadmin';
+  role: 'user' | 'admin' | 'superadmin' | 'external';
   bio: string | null;
   phone: string | null;
   image: string | null;
@@ -34,12 +34,15 @@ export interface User {
   updated_at: string;
 }
 
+export type PublicUser = Omit<User, 'password_hash'>;
+
 export interface ServiceCategory {
   id: number;
   name: string;
   slug: string;
   description: string | null;
   icon: string | null;
+  image: string | null;
   sort_order: number;
   created_at: string;
 }

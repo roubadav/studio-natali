@@ -1,0 +1,87 @@
+# Studio Natali
+
+> Kadeřnický salon v Říčanech u Prahy. Dvě zkušené kadeřnice – Natálie a Vilma. Střihy, barvení, melíry, keratinové ošetření, společenské účesy. Online rezervace.
+
+Studio Natali je malý rodinný kadeřnický salon v Říčanech u Prahy (Černokostelecká 80/42, 251 01 Říčany). Salon provozují dvě kadeřnice: Natálie (majitelka, rezervace přes Facebook nebo telefon) a Vilma Strakatá (specialistka na barvení a moderní střihy, rezervace online nebo osobně).
+
+## Kontakt
+
+- **Adresa**: Černokostelecká 80/42, 251 01 Říčany u Prahy
+- **Telefon**: +420 774 889 606
+- **E-mail**: info@studionatali-ricany.cz
+- **Web**: https://studionatali-ricany.cz
+- **Provozní doba (Vilma)**: Pondělí–Pátek 9:00–17:00 (přestávka 12:00–12:30), Sobota–Neděle zavřeno
+
+## Kadeřnice
+
+### Natálie
+Majitelka salonu. Rezervace výhradně přes Facebook stránku nebo telefonicky na +420 774 889 606.
+
+### Vilma Strakatá
+Specialistka na barvení, melíry a moderní střihy. Online rezervace na https://studionatali-ricany.cz/rezervace nebo telefonicky.
+
+## Služby a ceny (Vilma Strakatá)
+
+### Střihy
+| Služba | Cena | Doba trvání |
+|--------|------|-------------|
+| Dámský střih (mytí + foukaná) | 400 Kč | 60 min |
+| Pánský střih | 280 Kč | 30 min |
+| Dětský střih (do 12 let) | 250 Kč | 30 min |
+
+### Barvení
+| Služba | Cena od | Doba trvání |
+|--------|---------|-------------|
+| Barvení krátké vlasy | 800 Kč | 90 min |
+| Barvení dlouhé vlasy | 1 200 Kč | 120 min |
+| Melír | 1 500 Kč | 150 min |
+| Balayage | 1 800 Kč | 180 min |
+
+### Péče
+| Služba | Cena od | Doba trvání |
+|--------|---------|-------------|
+| Keratinové ošetření | 2 000 Kč | 120 min |
+
+### Styling
+| Služba | Cena od | Doba trvání |
+|--------|---------|-------------|
+| Společenský účes | 800 Kč | 60 min |
+
+## Rezervace online (pro zákazníky)
+
+Rezervace lze provést na https://studionatali-ricany.cz/rezervace. Výběr kadeřnice → výběr služeb → výběr termínu → zadání kontaktních údajů → potvrzení. Rezervaci schvaluje kadeřnice, potvrzení přijde e-mailem.
+
+## Rezervační API (pro AI agenty)
+
+Studio Natali nabízí strukturované API pro AI asistenty umožňující rezervaci jménem zákazníka. Proces je chráněn SMS ověřením zákazníkovy identity.
+
+**Base URL**: `https://studionatali-ricany.cz/api/agent`
+
+**Dokumentace**: https://studionatali-ricany.cz/.well-known/ai-plugin.json
+
+### Stručný postup pro AI agenta:
+1. `GET /api/agent/services` – získej seznam služeb a jejich ID
+2. `GET /api/agent/workers` – získej seznam kadeřnic a jejich ID
+3. `GET /api/agent/availability?workerId={id}&date={YYYY-MM-DD}&duration={min}` – ověř volné termíny
+4. `POST /api/agent/book` – pošli rezervaci (zákazník dostane SMS s ověřovacím kódem)
+5. `POST /api/agent/verify` – zákazník/agent odešle SMS kód → rezervace potvrzena
+
+## FAQ
+
+**Q: Jak rychle kadeřnice odpoví na rezervaci?**
+A: Rezervace jsou zpravidla potvrzeny do několika hodin. Po potvrzení přijde e-mail.
+
+**Q: Mohu rezervaci zrušit?**
+A: Ano, zrušení je možné minimálně 24 hodin před termínem přes odkaz v potvrzovacím e-mailu.
+
+**Q: Jsou ceny konečné?**
+A: Ceny barvení a úprav jsou „od", finální cena záleží na délce a hustotě vlasů. Přesná cena bude sdělena při konzultaci.
+
+**Q: Kde salon sídlí?**
+A: Černokostelecká 80/42, 251 01 Říčany u Prahy. 10 minut chůze od nádraží Říčany (vlak z Prahy cca 30 min).
+
+**Q: Přijímají se platby kartou?**
+A: Platba probíhá v salonu. Přijímají se hotovost i platební karta.
+
+**Q: Nabízí salon služby pro muže a děti?**
+A: Ano, Vilma nabízí pánské střihy (280 Kč) i dětské střihy pro děti do 12 let (250 Kč).

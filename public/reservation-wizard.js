@@ -59,6 +59,7 @@ let availabilityLoaded = false;
 let reservationCompleted = false;
 let lockExpiresAt = null;
 let lockTimerId = null;
+let loadRequestId = 0;
 
 // Client token for lock ownership - persisted in sessionStorage
 function generateUUID() {
@@ -107,9 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   renderCalendar();
 
-  // Add click handlers to worker cards
-  document.querySelectorAll('.worker-card').forEach(card => {
-    card.addEventListener('click', function () {
+  // Add click handlers to worker cards (only non-external ones)
+  document.querySelectorAll('.worker-card:not([data-worker-external="true"])').forEach(card => {
+    card.addEventListener('click', function (e) {
       const id = parseInt(this.dataset.workerId, 10);
       const name = this.dataset.workerName || '';
       if (!Number.isNaN(id)) {
@@ -123,16 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (preselectedWorkerId) {
     const card = document.querySelector('.worker-card[data-worker-id="' + preselectedWorkerId + '"]');
-    if (card) {
+    if (card && card.dataset.workerExternal !== 'true') {
       const name = card.dataset.workerName || '';
       selectWorker(preselectedWorkerId, name);
       goToStep(2);
     }
   }
 
-  // Auto-skip step 1 if only one worker is available
+  // Auto-skip step 1 if only one bookable (non-external) worker is available
   if (!preselectedWorkerId) {
-    const workerCards = document.querySelectorAll('.worker-card');
+    const workerCards = document.querySelectorAll('.worker-card:not([data-worker-external="true"])');
     if (workerCards.length === 1) {
       const card = workerCards[0];
       const id = parseInt(card.dataset.workerId, 10);
@@ -492,6 +493,7 @@ function autoSelectFirstAvailableDate() {
 }
 
 async function loadTimeSlots() {
+  const thisRequestId = ++loadRequestId;
   const slotsDiv = document.getElementById('time-slots');
   const refreshBtn = document.getElementById('refresh-slots-btn');
   
@@ -525,12 +527,18 @@ async function loadTimeSlots() {
     const token = getClientToken();
     const url = '/api/reservations?date=' + dateStr + '&totalDuration=' + totalDuration + '&workerId=' + selectedWorker.id + '&detailed=true&clientToken=' + encodeURIComponent(token);
     const res = await fetch(url);
+
+    // Stale response guard: if a newer request was started, discard this result
+    if (thisRequestId !== loadRequestId) return;
+
     const data = await res.json();
 
     if (!data.slots || data.slots.length === 0) {
+      if (thisRequestId !== loadRequestId) return;
       slotsDiv.innerHTML = '<p class="col-span-3 text-center text-neutral-500 dark:text-neutral-400 py-4">' + i18n.noSlots + '</p>';
       // Don't return early, let finally block run
     } else {
+      if (thisRequestId !== loadRequestId) return;
       const selected = selectedTime;
       slotsDiv.innerHTML = data.slots.map(slot => {
         const available = slot.status === 'available';
@@ -575,6 +583,7 @@ async function loadTimeSlots() {
 
   } catch (e) {
     console.error('Error loading time slots:', e);
+    if (thisRequestId !== loadRequestId) return;
     slotsDiv.innerHTML = '<p class="col-span-3 text-center text-red-600 dark:text-red-400 py-4">' + i18n.loadError + '</p>';
   } finally {
     // Re-enable refresh button
@@ -722,8 +731,9 @@ function resetDateTimeSelections() {
   if (slotsDiv) {
     slotsDiv.innerHTML = '<p class="col-span-3 text-center text-neutral-500 dark:text-neutral-400 py-4">' + i18n.select_date_first + '</p>';
   }
+  // Increment loadRequestId to cancel any in-flight loadTimeSlots calls
+  loadRequestId++;
   renderCalendar();
-  loadTimeSlots();
 }
 
 async function clearLockIfNeeded() {
@@ -822,6 +832,12 @@ async function nextStep() {
 
   // When entering step 3, fetch availability and auto-select first available date
   if (currentStep === 3) {
+    // Show loading on time slots while availability loads
+    const slotsDiv = document.getElementById('time-slots');
+    if (slotsDiv) {
+      slotsDiv.innerHTML = '<div class="col-span-3 flex items-center justify-center py-12"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-primary-600"></i></div>';
+      if (window.lucide) lucide.createIcons();
+    }
     await fetchAvailabilityForMonth();
     autoSelectFirstAvailableDate();
   }

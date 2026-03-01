@@ -7,7 +7,7 @@
 - **Open Graph meta tagy**: og:title, og:description, og:image, og:locale (cs_CZ), og:site_name
 - **Twitter Cards**: summary_large_image
 - **Canonical URLs**: Na každé stránce
-- **robots.txt**: Blokuje /admin/, /api/, /test
+- **robots.txt**: Blokuje /admin/, /api/, /test – explicitně povoluje AI crwlery a /api/agent/
 - **sitemap.xml**: 4 veřejné URL
 - **Geo meta tagy**: geo.region (CZ-20), geo.placename (Říčany), ICBM souřadnice
 - **Theme-color**: Pro mobilní prohlížeče
@@ -18,6 +18,14 @@
 - **Hero obrázek**: fetchpriority="high" pro LCP
 - **Self-hosted ikony**: 8.8 KB místo 200 KB z CDN
 
+### ✅ AEO – AI Engine Optimization (doporučování AI agenty)
+- **`/llms.txt`**: Soubor pro LLM modely (ChatGPT, Claude, Perplexity) – popis salonu, ceník, FAQ, popis API
+- **`/.well-known/ai-plugin.json`**: OpenAI ChatGPT plugin manifest → AI agent pozná, že web umí rezervace
+- **`/.well-known/openapi.json`**: Plná OpenAPI 3.1 dokumentace rezervačního API (AI čitelná)
+- **FAQPage schema**: 7 běžných otázek v JSON-LD → AI asistenti je použijí jako odpovědi
+- **Rozšířený HairSalon schema**: hasOfferCatalog s cenami, makesOffer s odkazem na rezervaci, paymentAccepted
+- **Rezervační API pro agenty** (`/api/agent/*`): Agenti mohou sami rezervovat jménem zákazníka
+
 ### ✅ Obsah
 - **Unikátní texty**: Bez klišé, přirozené, lokální zaměření
 - **Lokální klíčová slova**: "Říčany u Prahy", "kadeřnictví v Říčanech"
@@ -25,6 +33,56 @@
 - **alt texty na obrázcích**: Popisné alternativní texty
 
 ---
+
+## Rezervační API pro AI agenty
+
+Web má plnohodnotné API, které umožňuje AI asistentovi (ChatGPT, Copilot, Gemini…) rezervovat termín **jménem zákazníka**. Ochrana před spamem je řešena povinným SMS ověřením.
+
+### Jak to funguje
+
+```
+Zákazník: "Zarezervuj mi střih u Vilmy v Studio Natali v Říčanech na středu"
+        ↓
+AI agent: GET /api/agent/services      → zjistí ID služeb
+AI agent: GET /api/agent/workers       → zjistí ID Vilmy
+AI agent: GET /api/agent/availability  → ověří volné sloty ve středu
+AI agent: POST /api/agent/book         → vytvoří čekající rezervaci
+        ↓
+Zákazník: dostane SMS s 6místným kódem
+        ↓
+AI agent: POST /api/agent/verify       → odešle kód → rezervace vytvořena
+Zákazník: dostane potvrzovací e-mail
+```
+
+### Ochrana před spam/fake rezervacemi
+
+| Ochrana | Popis |
+|---------|-------|
+| **SMS OTP** | Bez kódu ze SMS nelze rezervaci dokončit – fake čísla kód neobdrží |
+| **Token expiry** | OTP i verifikační token vyprší za 30 minut |
+| **Max. pokusy** | 3 chybné OTP pokusy = token zneplatněn |
+| **Rate limiting** | Max 3 rezervace za hodinu na IP adresu |
+| **Limit na telefon** | Max 2 čekající rezervace na jedno tel. číslo najednou |
+
+### Endpointy
+
+| Metoda | Endpoint | Popis |
+|--------|----------|-------|
+| `GET` | `/api/agent/services` | Seznam služeb s cenami a IDs |
+| `GET` | `/api/agent/workers` | Seznam kadeřnic s IDs |
+| `GET` | `/api/agent/availability?workerId=&date=&duration=` | Volné sloty |
+| `POST` | `/api/agent/book` | Vytvoř rezervaci → SMS zákazníkovi |
+| `POST` | `/api/agent/verify` | Ověř OTP → hotovo |
+
+Plná dokumentace: https://studionatali-ricany.cz/.well-known/openapi.json
+
+### Ruční krok: aplikovat DB migraci
+
+```bash
+npx wrangler d1 migrations apply studio-natali-db --remote
+```
+
+
 
 ## Co musíte udělat vy (ruční kroky)
 

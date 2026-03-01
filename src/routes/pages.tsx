@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import type { Env } from '../types';
+import type { Env, JWTPayload } from '../types';
 import { SiteLayout, BaseLayout } from '../components/Layout';
 import { 
   HeroSection, 
@@ -26,8 +26,9 @@ import * as db from '../lib/db';
 import { getCookie } from 'hono/cookie';
 import { verifyJWT } from '../lib/auth';
 import { getTranslations } from '../lib/i18n';
+import { mapSettings } from '../lib/settings';
 
-export const pageRoutes = new Hono<{ Bindings: Env }>();
+export const pageRoutes = new Hono<{ Bindings: Env; Variables: { user: JWTPayload } }>();
 
 const t = getTranslations();
 
@@ -37,14 +38,254 @@ const t = getTranslations();
 pageRoutes.get('/', async (c) => {
   const workers = await db.getWorkers(c.env.DB);
   const images = await db.getAllGalleryImages(c.env.DB);
+  const categories = await db.getAllCategories(c.env.DB);
+  const services = await db.getAllServices(c.env.DB);
   const showGalleryLink = images.length > 0;
-  
+
+  // Filter: only categories that have at least one active service
+  const activeCategories = categories.filter(cat =>
+    services.some(s => s.category_id === cat.id)
+  );
+
+  // Rozšířená strukturovaná data pro AEO/GEO – doporučování AI agenty
+  const richStructuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://studionatali-ricany.cz/#website",
+        "url": "https://studionatali-ricany.cz",
+        "name": "Studio Natali",
+        "description": "Kadeřnický salon v Říčanech u Prahy",
+        "publisher": { "@id": "https://studionatali-ricany.cz/#business" },
+        "inLanguage": "cs-CZ"
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://studionatali-ricany.cz/#webpage",
+        "url": "https://studionatali-ricany.cz",
+        "name": "Studio Natali – Kadeřnický salon Říčany u Prahy",
+        "isPartOf": { "@id": "https://studionatali-ricany.cz/#website" },
+        "about": { "@id": "https://studionatali-ricany.cz/#business" },
+        "description": "Kadeřnictví v Říčanech u Prahy. Natálie a Vilma – střihy, barvení, melíry i keratinová péče. Objednejte se online.",
+        "inLanguage": "cs-CZ"
+      },
+      {
+        "@type": "HairSalon",
+        "@id": "https://studionatali-ricany.cz/#business",
+        "name": "Studio Natali",
+        "alternateName": "Kadeřnictví Studio Natali Říčany",
+        "description": "Kadeřnictví v Říčanech u Prahy. Natálie a Vilma – dvě kadeřnice s přes 10 lety praxe. Střihy, barvení, melíry, keratinové ošetření, společenské účesy. Objednávky online.",
+        "url": "https://studionatali-ricany.cz",
+        "telephone": "+420774889606",
+        "email": "info@studionatali-ricany.cz",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+420-774-889-606",
+          "contactType": "reservations",
+          "areaServed": "CZ",
+          "availableLanguage": ["Czech"]
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Černokostelecká 80/42",
+          "addressLocality": "Říčany",
+          "postalCode": "251 01",
+          "addressRegion": "Středočeský kraj",
+          "addressCountry": "CZ"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 49.99148,
+          "longitude": 14.65752
+        },
+        "hasMap": "https://maps.google.com/?cid=studio+natali+ricany",
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            "opens": "09:00",
+            "closes": "17:00"
+          }
+        ],
+        "image": [
+          "https://studionatali-ricany.cz/images/hero.png",
+          "https://studionatali-ricany.cz/logo.svg"
+        ],
+        "logo": "https://studionatali-ricany.cz/logo.svg",
+        "priceRange": "250 Kč – 2 000 Kč",
+        "currenciesAccepted": "CZK",
+        "paymentAccepted": "Hotovost, Platební karta",
+        "sameAs": [
+          "https://www.facebook.com/StudioNatali",
+          "https://instagram.com/studionatali"
+        ],
+        "areaServed": [
+          { "@type": "City", "name": "Říčany" },
+          { "@type": "City", "name": "Praha-východ" },
+          { "@type": "City", "name": "Praha" }
+        ],
+        "employee": [
+          {
+            "@type": "Person",
+            "name": "Natálie",
+            "jobTitle": "Majitelka a kadeřnice",
+            "worksFor": { "@id": "https://studionatali-ricany.cz/#business" }
+          },
+          {
+            "@type": "Person",
+            "name": "Vilma Strakatá",
+            "jobTitle": "Kadeřnice – specialistka na barvení",
+            "worksFor": { "@id": "https://studionatali-ricany.cz/#business" }
+          }
+        ],
+        "potentialAction": {
+          "@type": "ReserveAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://studionatali-ricany.cz/rezervace",
+            "actionPlatform": [
+              "http://schema.org/DesktopWebPlatform",
+              "http://schema.org/MobileWebPlatform"
+            ]
+          },
+          "result": {
+            "@type": "Reservation",
+            "name": "Rezervace termínu v kadeřnictví"
+          }
+        },
+        "hasOfferCatalog": {
+          "@type": "OfferCatalog",
+          "name": "Kadeřnické služby",
+          "itemListElement": [
+            {
+              "@type": "Offer",
+              "itemOffered": { "@type": "Service", "name": "Dámský střih", "description": "Kompletní střih včetně mytí a foukané" },
+              "price": "400",
+              "priceCurrency": "CZK"
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": { "@type": "Service", "name": "Pánský střih" },
+              "price": "280",
+              "priceCurrency": "CZK"
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": { "@type": "Service", "name": "Dětský střih", "description": "Pro děti do 12 let" },
+              "price": "250",
+              "priceCurrency": "CZK"
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": { "@type": "Service", "name": "Barvení – krátké vlasy" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "800", "priceCurrency": "CZK" }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": { "@type": "Service", "name": "Barvení – dlouhé vlasy" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "1200", "priceCurrency": "CZK" }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": { "@type": "Service", "name": "Melír" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "1500", "priceCurrency": "CZK" }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": { "@type": "Service", "name": "Balayage" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "1800", "priceCurrency": "CZK" }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": { "@type": "Service", "name": "Keratinové ošetření", "description": "Hloubková regenerace vlasů" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "2000", "priceCurrency": "CZK" }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": { "@type": "Service", "name": "Společenský účes" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "800", "priceCurrency": "CZK" }
+            }
+          ]
+        },
+        "makesOffer": {
+          "@type": "Offer",
+          "name": "Online rezervace termínu",
+          "url": "https://studionatali-ricany.cz/rezervace",
+          "description": "Rezervujte termín online – výběr kadeřnice, služby, data a času. Potvrzení e-mailem."
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://studionatali-ricany.cz/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Jak si rezervovat termín v Studio Natali?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Termín lze rezervovat online na studionatali-ricany.cz/rezervace – vyberete kadeřnici, službu, datum a čas a zadáte kontaktní údaje. Kadeřnice rezervaci potvrdí e-mailem. Alternativně volejte +420 774 889 606."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Kde se Studio Natali nachází?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Studio Natali sídlí na adrese Černokostelecká 80/42, 251 01 Říčany u Prahy – přibližně 10 minut pěšky od vlakového nádraží Říčany (vlak z Prahy cca 30 minut)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Jaká je provozní doba kadeřnictví?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Vilma Strakatá přijímá zákazníky pondělí až pátek 9:00–17:00 (přestávka 12:00–12:30). O víkendu je salon zavřený. Natálie se domlouvá individuálně přes Facebook nebo telefon."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Kolik stojí dámský střih v Říčanech v Studio Natali?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Dámský střih (včetně mytí a foukané) stojí 400 Kč. Pánský střih 280 Kč, dětský střih (do 12 let) 250 Kč."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Kolik stojí barvení vlasů?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Barvení krátkých vlasů od 800 Kč, dlouhých od 1 200 Kč. Melír od 1 500 Kč, Balayage od 1 800 Kč. Finální cena záleží na délce a hustotě vlasů."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Mohu rezervaci zrušit?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Ano, rezervaci lze zrušit nejpozději 24 hodin před termínem pomocí odkazu v potvrzovacím e-mailu nebo telefonicky."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Přijímá salon platbu kartou?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Salon přijímá hotovost i platební kartu."
+            }
+          }
+        ]
+      }
+    ]
+  };
+
   return c.html(
-    <SiteLayout showGalleryLink={showGalleryLink} canonical="https://studionatali-ricany.cz/" description={t.common.site_description}>
+    <SiteLayout showGalleryLink={showGalleryLink} canonical="https://studionatali-ricany.cz/" description={t.common.site_description} structuredData={richStructuredData}>
       <HeroSection />
       <AboutSection />
       <TeamSection workers={workers} />
-      <ServicesSection />
+      <ServicesSection categories={activeCategories} />
       <GallerySection images={images} />
       <CTASection />
       <ContactSection />
@@ -54,7 +295,9 @@ pageRoutes.get('/', async (c) => {
 
 // Reservation page
 pageRoutes.get('/rezervace', async (c) => {
-  const workers = await db.getBookableWorkers(c.env.DB);
+  // Show all active workers (including external) so both Vilma and Natálie appear
+  const allWorkers = await db.getWorkers(c.env.DB);
+  const workers = allWorkers.filter(w => w.role !== 'superadmin');
   const services = await db.getAllServices(c.env.DB);
   const categories = await db.getAllCategories(c.env.DB);
   const workerIdParam = c.req.query('workerId');
@@ -62,10 +305,7 @@ pageRoutes.get('/rezervace', async (c) => {
   
   // Get settings for booking window
   const settingsArray = await db.getAllSettings(c.env.DB);
-  const settings = settingsArray.reduce((acc, s) => {
-    acc[s.key] = s.value;
-    return acc;
-  }, {} as Record<string, string>);
+  const settings = mapSettings(settingsArray);
   
   const bookingWindow = parseInt(settings.booking_window || '30');
   
@@ -94,13 +334,10 @@ pageRoutes.get('/obchodni-podminky', async (c) => {
   const images = await db.getAllGalleryImages(c.env.DB);
   const showGalleryLink = images.length > 0;
   const settingsArray = await db.getAllSettings(c.env.DB);
-  const settings = settingsArray.reduce((acc, s) => {
-    acc[s.key] = s.value;
-    return acc;
-  }, {} as Record<string, string>);
+  const settings = mapSettings(settingsArray);
   const contactName = settings.salon_name || t.terms.contact_name;
   const contactAddress = settings.address || t.terms.contact_address;
-  const contactPhone = settings.contact_phone || t.terms.contact_phone;
+  const contactPhone = settings.phone || t.terms.contact_phone;
   const contactEmail = settings.contact_email || t.terms.contact_email;
   const addressLines = contactAddress.split('\n').map(line => line.trim()).filter(Boolean);
   return c.html(
@@ -144,13 +381,10 @@ pageRoutes.get('/zpracovani-udaju', async (c) => {
   const images = await db.getAllGalleryImages(c.env.DB);
   const showGalleryLink = images.length > 0;
   const settingsArray = await db.getAllSettings(c.env.DB);
-  const settings = settingsArray.reduce((acc, s) => {
-    acc[s.key] = s.value;
-    return acc;
-  }, {} as Record<string, string>);
+  const settings = mapSettings(settingsArray);
   const contactEmail = settings.contact_email || t.terms.contact_email;
   const contactName = settings.salon_name || t.terms.contact_name;
-  const contactPhone = settings.contact_phone || t.terms.contact_phone;
+  const contactPhone = settings.phone || t.terms.contact_phone;
   const contactAddress = settings.address || t.terms.contact_address;
   return c.html(
     <SiteLayout title={t.privacy.page_title} showGalleryLink={showGalleryLink} canonical="https://studionatali-ricany.cz/zpracovani-udaju" noindex={true}>
@@ -276,9 +510,10 @@ pageRoutes.get('/admin/dashboard', requireAuth, async (c) => {
   const todayReservations = await db.getReservationsByDate(c.env.DB, today);
   const pendingReservations = await db.getPendingReservations(c.env.DB);
   const recentReservations = await db.getLatestReservations(c.env.DB, 5);
+  const user = c.get('user') as { userId: number; role: string };
   
   return c.html(
-    <AdminLayout title={t.admin.dashboard_title}>
+    <AdminLayout title={t.admin.dashboard_title} userRole={user.role}>
       <AdminDashboard 
         todayReservations={todayReservations}
         pendingReservations={pendingReservations}
@@ -291,10 +526,12 @@ pageRoutes.get('/admin/dashboard', requireAuth, async (c) => {
 // Admin reservations
 pageRoutes.get('/admin/rezervace', requireAuth, async (c) => {
   const reservations = await db.getReservationsByDateRange(c.env.DB, '2025-01-01', '2026-12-31');
-  const workers = await db.getWorkers(c.env.DB);
+  const allWorkers = await db.getWorkers(c.env.DB);
+  const workers = allWorkers.filter(w => w.role !== 'external');
+  const user = c.get('user') as { userId: number; role: string };
   
   return c.html(
-    <AdminLayout title="Rezervace | Admin | Studio Natali">
+    <AdminLayout title="Rezervace | Admin | Studio Natali" userRole={user.role}>
       <AdminReservationsPage reservations={reservations} workers={workers} />
     </AdminLayout>
   );
@@ -305,9 +542,10 @@ pageRoutes.get('/admin/sluzby', requireAuth, async (c) => {
   const services = await db.getAllServices(c.env.DB);
   const categories = await db.getAllCategories(c.env.DB);
   const workers = await db.getWorkers(c.env.DB);
+  const user = c.get('user') as { userId: number; role: string };
   
   return c.html(
-    <AdminLayout title={t.admin.services_title}>
+    <AdminLayout title={t.admin.services_title} userRole={user.role}>
       <AdminServicesPage services={services} categories={categories} workers={workers} />
     </AdminLayout>
   );
@@ -316,20 +554,25 @@ pageRoutes.get('/admin/sluzby', requireAuth, async (c) => {
 // Admin gallery
 pageRoutes.get('/admin/galerie', requireAuth, async (c) => {
   const images = await db.getAllGalleryImages(c.env.DB);
+  const user = c.get('user') as { userId: number; role: string };
   
   return c.html(
-    <AdminLayout title={t.admin.gallery_title}>
+    <AdminLayout title={t.admin.gallery_title} userRole={user.role}>
       <AdminGalleryPage images={images} />
     </AdminLayout>
   );
 });
 
-// Admin users
+// Admin users (admin only)
 pageRoutes.get('/admin/uzivatele', requireAuth, async (c) => {
+  const user = c.get('user') as { userId: number; role: string };
+  if (user.role !== 'admin' && user.role !== 'superadmin') {
+    return c.redirect('/admin/dashboard');
+  }
   const users = await db.getAllUsers(c.env.DB);
   
   return c.html(
-    <AdminLayout title={t.admin.users_title}>
+    <AdminLayout title={t.admin.users_title} userRole={user.role}>
       <AdminUsersPage users={users} />
     </AdminLayout>
   );
@@ -338,14 +581,16 @@ pageRoutes.get('/admin/uzivatele', requireAuth, async (c) => {
 // Admin working hours
 pageRoutes.get('/admin/pracovni-doba', requireAuth, async (c) => {
   const hours = await db.getAllWorkingHours(c.env.DB);
-  const workers = await db.getWorkers(c.env.DB);
+  const allWorkers = await db.getWorkers(c.env.DB);
+  // External users don't have working hours
+  const workers = allWorkers.filter(w => w.role !== 'external');
   const user = c.get('user') as { userId: number; role: string };
   
   return c.html(
-    <AdminLayout title={t.admin.hours_title}>
+    <AdminLayout title={t.admin.hours_title} userRole={user.role}>
       <AdminWorkingHoursPage 
         hours={hours} 
-        workers={workers as any} // Casting to bypass Omit check for now
+        workers={workers}
         currentUser={user} 
       />
     </AdminLayout>
@@ -355,17 +600,16 @@ pageRoutes.get('/admin/pracovni-doba', requireAuth, async (c) => {
 // Admin settings
 pageRoutes.get('/admin/nastaveni', requireAuth, async (c) => {
   const settingsArray = await db.getAllSettings(c.env.DB);
-  // Convert array to object
-  const settings = settingsArray.reduce((acc, s) => {
-    acc[s.key] = s.value;
-    return acc;
-  }, {} as Record<string, string>);
+  const settings = mapSettings(settingsArray);
   
   const user = c.get('user');
   const currentUser = await db.getUserById(c.env.DB, user.userId);
+  if (!currentUser) {
+    return c.redirect('/admin/login');
+  }
   
   return c.html(
-    <AdminLayout title={t.admin.settings_title}>
+    <AdminLayout title={t.admin.settings_title} userRole={user.role}>
       <AdminSettingsPage settings={settings} currentUser={currentUser} />
     </AdminLayout>
   );

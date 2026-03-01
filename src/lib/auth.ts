@@ -1,4 +1,4 @@
-import type { Env, JWTPayload } from '../types';
+import type { JWTPayload } from '../types';
 import { compareSync } from 'bcryptjs';
 
 // Simple JWT implementation for Cloudflare Workers
@@ -75,7 +75,7 @@ export async function verifyJWT(token: string, secret: string): Promise<JWTPaylo
     const key = await getKey(secret);
     const signature = base64UrlDecode(signatureB64);
     
-    const valid = await crypto.subtle.verify('HMAC', key, signature, encoder.encode(message));
+    const valid = await crypto.subtle.verify('HMAC', key, signature as BufferSource, encoder.encode(message) as BufferSource);
     if (!valid) return null;
     
     const payload = JSON.parse(decoder.decode(base64UrlDecode(payloadB64))) as JWTPayload;
@@ -143,7 +143,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
     const hash = await crypto.subtle.deriveBits(
       {
         name: 'PBKDF2',
-        salt,
+        salt: salt as BufferSource,
         iterations: 100000,
         hash: 'SHA-256',
       },

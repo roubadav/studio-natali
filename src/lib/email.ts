@@ -15,11 +15,7 @@ export class EmailService {
   }
 
   async send(options: EmailOptions): Promise<boolean> {
-    // Priority: 1. SMTP (via MailChannels or relay), 2. Resend API, 3. Mock
-    if (this.env.SMTP_HOST && this.env.SMTP_USER) {
-      return this.sendWithMailChannels(options);
-    }
-
+    // Priority: 1. Resend API, 2. Mock (development)
     if (this.env.RESEND_API_KEY) {
       return this.sendWithResend(options);
     }
@@ -38,68 +34,8 @@ export class EmailService {
     return true;
   }
 
-  /**
-   * Send email via MailChannels API (free for Cloudflare Workers).
-   * This is the recommended approach for CF Workers since direct SMTP
-   * connections are not supported in the Workers runtime.
-   * 
-   * To use seznam.cz SMTP directly, you would need a proxy/relay service
-   * or Cloudflare Email Workers + Email Routing.
-   * 
-   * MailChannels setup:
-   * 1. Add DNS TXT record: _mailchannels.yourdomain.com TXT "v=mc1 cfid=your-worker-subdomain.workers.dev"
-   * 2. No API key needed - authenticated via Cloudflare Workers
-   * 
-   * Alternative: Use SMTP_PASS as Resend API key if using Resend for production.
-   */
-  private async sendWithMailChannels(options: EmailOptions): Promise<boolean> {
-    const fromAddress = this.env.SMTP_FROM || `Studio Natali <${this.env.SMTP_USER}>`;
-    
-    // Parse "Name <email>" format
-    const fromMatch = fromAddress.match(/^(.+?)\s*<(.+?)>$/);
-    const fromName = fromMatch ? fromMatch[1].trim() : 'Studio Natali';
-    const fromEmail = fromMatch ? fromMatch[2].trim() : (this.env.SMTP_USER || 'info@studionatali-ricany.cz');
-
-    try {
-      const res = await fetch('https://api.mailchannels.net/tx/v1/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          personalizations: [{
-            to: [{ email: options.to }],
-          }],
-          from: {
-            email: fromEmail,
-            name: fromName,
-          },
-          subject: options.subject,
-          content: [{
-            type: 'text/html',
-            value: options.html,
-          }],
-          ...(options.replyTo ? { reply_to: { email: options.replyTo } } : {}),
-        }),
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        console.error('MailChannels send failed:', res.status, error);
-        // Fallback to mock if MailChannels fails
-        console.log('Falling back to mock email...');
-        return this.sendMock(options);
-      }
-
-      console.log('Email sent via MailChannels to:', options.to);
-      return true;
-    } catch (e) {
-      console.error('MailChannels send error:', e);
-      // Fallback to mock
-      return this.sendMock(options);
-    }
-  }
-
   private async sendWithResend(options: EmailOptions): Promise<boolean> {
-    const fromAddress = this.env.SMTP_FROM || 'Studio Natali <rezervace@studionatali.cz>';
+    const fromAddress = this.env.SMTP_FROM || 'Studio Natali <info@studionatali-ricany.cz>';
 
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -119,16 +55,73 @@ export class EmailService {
 
       if (!res.ok) {
         const error = await res.text();
-        console.error('Email send failed:', error);
+        console.error('Resend email failed:', res.status, error);
         return false;
       }
 
+      console.log('Email sent via Resend to:', options.to);
       return true;
     } catch (e) {
-      console.error('Email send error:', e);
+      console.error('Resend email error:', e);
       return false;
     }
   }
+}
+
+/**
+ * Shared email layout wrapper.
+ * Best practices for spam-filter compliance:
+ * - Full HTML5 document with DOCTYPE, html, head, body
+ * - Physical mailing address in footer (CAN-SPAM / GDPR)
+ * - High text-to-image ratio, no external images
+ * - Table-based layout for maximum email client compatibility
+ * - Inline styles only (no <style> blocks)
+ * - No URL shorteners, no suspicious link text
+ * - reply-to set at send time via EmailService
+ */
+function emailLayout(title: string, bodyContent: string): string {
+  return `<!DOCTYPE html>
+<html lang="cs" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>${title}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f1ec; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333333; line-height: 1.6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f1ec;">
+    <tr>
+      <td align="center" style="padding: 24px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 12px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 28px 32px 20px; text-align: center; border-bottom: 1px solid #ede8e0;">
+              <a href="https://studionatali-ricany.cz" style="text-decoration: none; color: #333;">
+                <span style="font-size: 22px; font-weight: 700; letter-spacing: 2px; color: #333;">STUDIO</span>
+                <span style="font-size: 22px; font-weight: 300; letter-spacing: 2px; color: #8a654b;"> Natali</span>
+              </a>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding: 28px 32px 20px; font-size: 15px; color: #333333; line-height: 1.7;">
+              ${bodyContent}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 32px 28px; border-top: 1px solid #ede8e0; font-size: 12px; color: #999999; text-align: center; line-height: 1.6;">
+              <p style="margin: 0 0 6px;">Studio Natali &middot; Černokostelecká 80/42 &middot; 251 01 Říčany u Prahy</p>
+              <p style="margin: 0 0 6px;">Tel: <a href="tel:+420774889606" style="color: #999;">+420 774 889 606</a> &middot; <a href="mailto:info@studionatali-ricany.cz" style="color: #999;">info@studionatali-ricany.cz</a></p>
+              <p style="margin: 0;"><a href="https://studionatali-ricany.cz" style="color: #8a654b;">studionatali-ricany.cz</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 export function generateConfirmationEmail(
@@ -138,26 +131,25 @@ export function generateConfirmationEmail(
   services: string,
   cancelLink: string
 ): string {
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h1>Dobrý den, ${customerName},</h1>
-      <p>Děkujeme za Vaši rezervaci ve Studiu Natali.</p>
-      
-      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <p><strong>Datum:</strong> ${date}</p>
-        <p><strong>Čas:</strong> ${time}</p>
-        <p><strong>Služby:</strong> ${services}</p>
-      </div>
+  const firstName = customerName.split(' ')[0];
+  return emailLayout(`Rezervace přijata`, `
+    <p>Ahoj ${firstName},</p>
+    <p>díky za rezervaci v Studio Natali. Tady je shrnutí:</p>
+    
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+      <tr><td style="background: #f8f5f0; padding: 20px; border-radius: 8px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr><td style="padding: 4px 0; color: #555;">Datum</td><td style="padding: 4px 0; font-weight: 600; color: #333; text-align: right;">${date}</td></tr>
+          <tr><td style="padding: 4px 0; color: #555;">Čas</td><td style="padding: 4px 0; font-weight: 600; color: #333; text-align: right;">${time}</td></tr>
+          <tr><td style="padding: 4px 0; color: #555;">Služby</td><td style="padding: 4px 0; font-weight: 600; color: #333; text-align: right;">${services}</td></tr>
+        </table>
+      </td></tr>
+    </table>
 
-      <p>Vaše rezervace čeká na schválení kadeřnicí. O výsledku Vás budeme informovat dalším e-mailem.</p>
+    <p>Kadeřnice vaši rezervaci ještě potvrdí &ndash; jakmile se tak stane, přijde vám další e-mail.</p>
 
-      <p>Pokud jste tuto rezervaci neprovedli Vy, prosím ignorujte tento e-mail nebo nás kontaktujte.</p>
-
-      <div style="margin-top: 30px; font-size: 12px; color: #666;">
-        <p>Zrušit žádost můžete kliknutím na tento odkaz: <a href="${cancelLink}">Zrušit rezervaci</a></p>
-      </div>
-    </div>
-  `;
+    <p style="font-size: 13px; color: #888; margin-top: 24px;">Pokud se potřebujete odhlásit, můžete to udělat <a href="${cancelLink}" style="color: #8a654b;">tímto odkazem</a>.</p>
+  `);
 }
 
 export function generateApprovalRequestEmail(
@@ -166,26 +158,33 @@ export function generateApprovalRequestEmail(
   approveLink: string,
   rejectLink: string
 ): string {
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h1>Nová rezervace</h1>
-      <p>Dobrý den, ${workerName},</p>
-      <p>Máte novou žádost o rezervaci.</p>
-      
-      <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <p><strong>Zákazník:</strong> ${reservation.customer_name} (${reservation.customer_phone})</p>
-        <p><strong>Datum:</strong> ${reservation.date}</p>
-        <p><strong>Čas:</strong> ${reservation.start_time} - ${reservation.end_time}</p>
-        <p><strong>Poznámka:</strong> ${reservation.note || '-'}</p>
-        <p><strong>Služby:</strong> ${reservation.items.map((i: any) => i.service_name).join(', ')}</p>
-      </div>
+  const firstName = workerName.split(' ')[0];
+  return emailLayout(`Nová rezervace ke schválení`, `
+    <p>Ahoj ${firstName},</p>
+    <p>přišla nová rezervace, co čeká na tvé potvrzení:</p>
+    
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+      <tr><td style="background: #f8f5f0; padding: 20px; border-radius: 8px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr><td style="padding: 4px 0; color: #555;">Zákazník</td><td style="padding: 4px 0; font-weight: 600; color: #333; text-align: right;">${reservation.customer_name}</td></tr>
+          <tr><td style="padding: 4px 0; color: #555;">Telefon</td><td style="padding: 4px 0; font-weight: 600; color: #333; text-align: right;">${reservation.customer_phone}</td></tr>
+          <tr><td style="padding: 4px 0; color: #555;">Datum</td><td style="padding: 4px 0; font-weight: 600; color: #333; text-align: right;">${reservation.date}</td></tr>
+          <tr><td style="padding: 4px 0; color: #555;">Čas</td><td style="padding: 4px 0; font-weight: 600; color: #333; text-align: right;">${reservation.start_time} &ndash; ${reservation.end_time}</td></tr>
+          <tr><td style="padding: 4px 0; color: #555;">Služby</td><td style="padding: 4px 0; font-weight: 600; color: #333; text-align: right;">${reservation.items.map((i: any) => i.service_name).join(', ')}</td></tr>
+          ${reservation.note ? `<tr><td style="padding: 4px 0; color: #555;">Poznámka</td><td style="padding: 4px 0; color: #333; text-align: right;">${reservation.note}</td></tr>` : ''}
+        </table>
+      </td></tr>
+    </table>
 
-      <div style="margin-top: 20px;">
-        <a href="${approveLink}" style="background: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">Schválit</a>
-        <a href="${rejectLink}" style="background: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Odmítnout</a>
-      </div>
-    </div>
-  `;
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+      <tr>
+        <td align="center">
+          <a href="${approveLink}" style="display: inline-block; background: #3d7a4a; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-right: 12px;">Schválit</a>
+          <a href="${rejectLink}" style="display: inline-block; background: #c0392b; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Odmítnout</a>
+        </td>
+      </tr>
+    </table>
+  `);
 }
 
 export function generateApprovedEmail(
@@ -194,20 +193,19 @@ export function generateApprovedEmail(
   time: string,
   cancelLink: string
 ): string {
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h1>Rezervace potvrzena</h1>
-      <p>Dobrý den, ${customerName},</p>
-      <p>Vaše rezervace na <strong>${date} v ${time}</strong> byla schválena.</p>
-      
-      <p>Těšíme se na Vaši návštěvu.</p>
+  const firstName = customerName.split(' ')[0];
+  return emailLayout(`Rezervace potvrzena`, `
+    <p>Ahoj ${firstName},</p>
+    <p>vaše rezervace na <strong>${date} v ${time}</strong> je potvrzená. Budeme se na vás těšit!</p>
+    
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+      <tr><td style="background: #edf7ed; padding: 16px 20px; border-radius: 8px; border-left: 4px solid #3d7a4a; color: #2d5a35;">
+        Rezervace je závazná. Pokud se nemůžete dostavit, zrušte ji prosím nejpozději 24 hodin předem.
+      </td></tr>
+    </table>
 
-      <div style="margin-top: 30px; font-size: 12px; color: #666; border-top: 1px solid #eee; padding-top: 10px;">
-        <p>Pokud se nemůžete dostavit, zrušte prosím rezervaci co nejdříve, nejpozději však 24 hodin předem.</p>
-        <p><a href="${cancelLink}">Spravovat nebo zrušit rezervaci</a></p>
-      </div>
-    </div>
-  `;
+    <p style="font-size: 13px; color: #888; margin-top: 24px;">Potřebujete změnit termín? <a href="${cancelLink}" style="color: #8a654b;">Spravovat rezervaci</a></p>
+  `);
 }
 
 export function generateRejectedEmail(
@@ -216,15 +214,23 @@ export function generateRejectedEmail(
   time: string,
   reason: string
 ): string {
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h1>Změna stavu rezervace</h1>
-      <p>Dobrý den, ${customerName},</p>
-      <p>Je nám líto, ale Vaši rezervaci na <strong>${date} v ${time}</strong> jsme museli odmítnout.</p>
-      
-      ${reason ? `<div style="background: #fff1f2; padding: 15px; border-left: 4px solid #f43f5e; margin: 20px 0;"><strong>Důvod:</strong> ${reason}</div>` : ''}
+  const firstName = customerName.split(' ')[0];
+  return emailLayout(`Rezervace nebyla potvrzena`, `
+    <p>Ahoj ${firstName},</p>
+    <p>mrzí nás to, ale vaši rezervaci na <strong>${date} v ${time}</strong> bohužel nemůžeme potvrdit.</p>
+    
+    ${reason ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+      <tr><td style="background: #fef2f2; padding: 16px 20px; border-radius: 8px; border-left: 4px solid #c0392b; color: #7f1d1d;">
+        ${reason}
+      </td></tr>
+    </table>` : ''}
 
-      <p>Prosím zkuste si vybrat jiný termín na našem webu.</p>
-    </div>
-  `;
+    <p>Zkuste prosím jiný termín &ndash; rádi vás uvidíme jindy.</p>
+    
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+      <tr><td align="center">
+        <a href="https://studionatali-ricany.cz/rezervace" style="display: inline-block; background: #8a654b; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Vybrat jiný termín</a>
+      </td></tr>
+    </table>
+  `);
 }
