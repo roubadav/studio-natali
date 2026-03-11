@@ -107,7 +107,13 @@ Nebo manuálně:
     ```
 
 ## 📧 E-maily
-V lokálním prostředí jsou e-maily pouze logovány do konzole. Pro produkční odesílání nastavte proměnnou `RESEND_API_KEY` v `wrangler.toml` nebo Cloudflare dashboardu.
+Priorita odesílání je:
+1. `MAILER` (`send_email` binding v Cloudflare Workers)
+2. `RESEND_API_KEY` (fallback provider)
+3. Mock log do konzole (jen když není nakonfigurovaný žádný provider)
+
+Pro čistě Cloudflare režim nastavte Email Routing + `send_email` binding.  
+Pozor: Cloudflare Email Workers umí posílat jen na **ověřené destination adresy** v Email Routing (ne libovolně na všechny zákazníky).
 
 ## 🔒 Bezpečnostní opatření
 *   **Placeholdery:** V přihlašovacím formuláři odstraněny reálné e-maily.

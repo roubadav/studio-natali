@@ -14,13 +14,18 @@ routes = [
 [vars]
 JWT_SECRET = "studio-natali-secret-key-change-in-production"
 APP_URL = "https://studionatali-ricany.cz"
-# SMTP Configuration for seznam.cz
+# Shared sender identity (Cloudflare Email Workers + Resend fallback)
+EMAIL_FROM = "Studio Natali <info@studionatali-ricany.cz>"
+# Legacy SMTP configuration (optional compatibility)
 SMTP_HOST = "smtp.seznam.cz"
 SMTP_PORT = "465"
 SMTP_USER = "info@studionatali-ricany.cz"
 SMTP_FROM = "Studio Natali <info@studionatali-ricany.cz>"
 # SMTP_PASS is set via: npx wrangler secret put SMTP_PASS
 # RESEND_API_KEY is set via: npx wrangler secret put RESEND_API_KEY
+
+[[send_email]]
+name = "MAILER"
 
 [[d1_databases]]
 binding = "DB"

@@ -3,6 +3,10 @@ export interface Env {
   DB: D1Database;
   JWT_SECRET: string;
   APP_URL: string;
+  // Cloudflare Email Workers binding (send_email)
+  MAILER?: SendEmail;
+  // Shared sender identity used by email providers
+  EMAIL_FROM?: string;
   RESEND_API_KEY?: string;
   // SMTP Configuration (seznam.cz or other provider)
   SMTP_HOST?: string;

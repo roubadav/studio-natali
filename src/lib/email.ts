@@ -7,6 +7,23 @@ export interface EmailOptions {
   replyTo?: string;
 }
 
+const DEFAULT_FROM_ADDRESS = 'Studio Natali <info@studionatali-ricany.cz>';
+
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export class EmailService {
   private env: Env;
 
@@ -15,13 +32,31 @@ export class EmailService {
   }
 
   async send(options: EmailOptions): Promise<boolean> {
-    // Priority: 1. Resend API, 2. Mock (development)
+    // Priority: 1) Cloudflare Email Workers, 2) Resend API, 3) Mock (dev)
+    let providerConfigured = false;
+
+    if (this.env.MAILER) {
+      providerConfigured = true;
+      const sentViaCloudflare = await this.sendWithCloudflare(options);
+      if (sentViaCloudflare) return true;
+    }
+
     if (this.env.RESEND_API_KEY) {
-      return this.sendWithResend(options);
+      providerConfigured = true;
+      const sentViaResend = await this.sendWithResend(options);
+      if (sentViaResend) return true;
+    }
+
+    if (providerConfigured) {
+      return false;
     }
 
     // Mock fallback for development
     return this.sendMock(options);
+  }
+
+  private getFromAddress(): string {
+    return this.env.EMAIL_FROM || this.env.SMTP_FROM || DEFAULT_FROM_ADDRESS;
   }
 
   private async sendMock(options: EmailOptions): Promise<boolean> {
@@ -34,8 +69,28 @@ export class EmailService {
     return true;
   }
 
+  private async sendWithCloudflare(options: EmailOptions): Promise<boolean> {
+    if (!this.env.MAILER) return false;
+
+    try {
+      await this.env.MAILER.send({
+        from: this.getFromAddress(),
+        to: options.to,
+        subject: options.subject,
+        replyTo: options.replyTo,
+        html: options.html,
+        text: htmlToPlainText(options.html),
+      });
+      console.log('Email sent via Cloudflare Email Workers to:', options.to);
+      return true;
+    } catch (e) {
+      console.error('Cloudflare email send failed:', e);
+      return false;
+    }
+  }
+
   private async sendWithResend(options: EmailOptions): Promise<boolean> {
-    const fromAddress = this.env.SMTP_FROM || 'Studio Natali <vilmastrakata@gmail.com>';
+    const fromAddress = this.getFromAddress();
 
     try {
       const res = await fetch('https://api.resend.com/emails', {
