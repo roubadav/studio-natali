@@ -13,23 +13,33 @@
   - `/Volumes/data/Projekty/vercel-mail-hub`
 - Vercel projekt je nasazen a běží na:
   - `https://vercel-mail-hub.vercel.app`
-- Vercel env je nastavené (`DATABASE_URL`, `MAIL_HUB_ADMIN_TOKEN`, `MAIL_HUB_API_KEY_PEPPER`, `MAIL_HUB_MASTER_KEY`)
-- DB schema je nahraná (`projects`, `api_keys`, `allowed_origins`, `senders`, `email_logs`)
-- V Mail Hubu je vytvořen projekt `studio-natali` + povolené origins:
-  - `https://studionatali-ricany.cz`
-  - `https://www.studionatali-ricany.cz`
-- V Mail Hubu je připravené i GUI:
+- Mail Hub GUI je připravené na:
   - `https://vercel-mail-hub.vercel.app/`
-  - přihlášení přes `MAIL_HUB_ADMIN_TOKEN`
+- Mail Hub bezpečnostní hardening je nasazen:
+  - admin auth přes `Authorization: Bearer <token>`
+  - nově i login přes e-mail + heslo (`POST /api/admin/auth/login`) s krátkodobou session
+  - allowlist domén (`allowed_origins`) + allowlist IP/CIDR (`allowed_ips`)
+  - rate limiting (`API key` / `project` / `IP`)
+  - bezpečnostní HTTP hlavičky + CSP
+  - sanitizované SMTP chyby (bez úniku citlivých detailů)
 
-## 2) Aktuální blocker
+## 2) Aktuální stav po ověření
 
-Aktuálně žádný blocker není. Mail Hub je nakonfigurovaný a testovací odeslání proběhlo úspěšně.
+- Ověřeno na produkci:
+  - `POST /api/v1/send` z povolené domény vrací `202`
+  - `POST /api/v1/send` z nepovolené domény vrací `403`
+  - admin endpoint bez auth vrací `401`
+  - admin endpoint s bearer tokenem vrací data (`200`)
+- Login přes e-mail+heslo je funkční v kódu/API, ale momentálně není zapnutý env konfigurací (API vrací `503`, dokud se nedoplní env proměnné).
 
 ## 3) Co potřebuji od tebe
 
-- V této chvíli nic navíc nepotřebuji.
-- Doporučení: bezpečně si ulož hodnoty admin/API secretů mimo repozitář (vault / password manager).
+- Vyber admin e-mail pro přihlášení do Mail Hubu (`MAIL_HUB_ADMIN_EMAIL`).
+- Nastav admin heslo ideálně jako hash (`MAIL_HUB_ADMIN_PASSWORD_HASH`; fallback je `MAIL_HUB_ADMIN_PASSWORD`).
+- (Doporučeno) Omez admin přístup na tvoje prostředí:
+  - `MAIL_HUB_ADMIN_ALLOWED_ORIGINS`
+  - `MAIL_HUB_ADMIN_ALLOWED_IPS`
+- Bezpečně ulož všechny secrety mimo repozitář (vault / password manager).
 
 ## 4) Co je už dokončené
 
@@ -41,7 +51,9 @@ Aktuálně žádný blocker není. Mail Hub je nakonfigurovaný a testovací ode
 ## 5) Admin API (už připraveno)
 
 - Projekty: `GET/POST /api/admin/projects`
+- Login: `POST /api/admin/auth/login`
 - Origins: `GET/POST /api/admin/projects/:projectId/origins`
+- IP allowlist: `GET/POST /api/admin/projects/:projectId/ips`
 - Senders: `GET/POST /api/admin/projects/:projectId/senders`
 - API keys: `POST /api/admin/projects/:projectId/keys`
 - Logy + CSV: `GET /api/admin/logs`
