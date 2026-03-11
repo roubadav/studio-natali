@@ -13,45 +13,27 @@
   - `/Volumes/data/Projekty/vercel-mail-hub`
 - Vercel projekt je nasazen a běží na:
   - `https://vercel-mail-hub.vercel.app`
+- Vercel env je nastavené (`DATABASE_URL`, `MAIL_HUB_ADMIN_TOKEN`, `MAIL_HUB_API_KEY_PEPPER`, `MAIL_HUB_MASTER_KEY`)
+- DB schema je nahraná (`projects`, `api_keys`, `allowed_origins`, `senders`, `email_logs`)
+- V Mail Hubu je vytvořen projekt `studio-natali` + povolené origins:
+  - `https://studionatali-ricany.cz`
+  - `https://www.studionatali-ricany.cz`
 
 ## 2) Aktuální blocker
 
-Mail Hub teď vrací `500` kvůli chybějící env proměnné:
-
-- `DATABASE_URL`
-
-Bez databáze nejde dokončit bootstrap projektu, klíče ani sender účty.
+Aktuálně žádný blocker není. Mail Hub je nakonfigurovaný a testovací odeslání proběhlo úspěšně.
 
 ## 3) Co potřebuji od tebe
 
-1. **Database URL**
-   - Pošli mi produkční `DATABASE_URL` (Neon/Postgres pro Mail Hub).
+- V této chvíli nic navíc nepotřebuji.
+- Doporučení: bezpečně si ulož hodnoty admin/API secretů mimo repozitář (vault / password manager).
 
-2. **SMTP účet(y) pro odesílání**
-   - Pro první sender potřebuji:
-     - `smtpHost`
-     - `smtpPort`
-     - `smtpUser`
-     - `smtpPass` (ideálně app password)
-     - e-mail odesílatele (From)
+## 4) Co je už dokončené
 
-3. **Potvrzení domén**
-   - Potvrď, že pro Studio Natali máme povolit:
-     - `https://studionatali-ricany.cz`
-     - `https://www.studionatali-ricany.cz`
-
-## 4) Co udělám hned potom (bez další práce od tebe)
-
-1. Nastavím env ve Vercelu:
-   - `DATABASE_URL`
-   - `MAIL_HUB_ADMIN_TOKEN`
-   - `MAIL_HUB_API_KEY_PEPPER`
-   - `MAIL_HUB_MASTER_KEY`
-2. Spustím SQL bootstrap (`scripts/bootstrap.sql`).
-3. Vytvořím projekt `studio-natali`, povolené origins a sender.
-4. Vygeneruju API klíč pro Studio Natali.
-5. Nastavím `EMAIL_API_KEY` secret ve Cloudflare Workeru.
-6. Udělám end-to-end test odeslání rezervace přes Vercel Mail Hub.
+1. Přidaný sender účet `info@studionatali-ricany.cz` v Mail Hubu.
+2. Vygenerovaný API klíč pro `studio-natali` a uložený jako `EMAIL_API_KEY` secret ve Cloudflare Workeru.
+3. Ověřený send přes `POST /api/v1/send` (status `202`, log `sent`).
+4. `studio-natali` je nasazené na produkci a přepnuté na Vercel Mail Hub (s Cloudflare fallbackem).
 
 ## 5) Admin API (už připraveno)
 
