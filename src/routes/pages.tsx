@@ -5,7 +5,6 @@ import {
   HeroSection, 
   AboutSection, 
   ServicesSection, 
-  TeamSection, 
   GallerySection, 
   CTASection, 
   ContactSection 
@@ -36,7 +35,6 @@ const t = getTranslations();
 
 // Homepage
 pageRoutes.get('/', async (c) => {
-  const workers = await db.getWorkers(c.env.DB);
   const images = await db.getAllGalleryImages(c.env.DB);
   const categories = await db.getAllCategories(c.env.DB);
   const services = await db.getAllServices(c.env.DB);
@@ -56,7 +54,7 @@ pageRoutes.get('/', async (c) => {
         "@id": "https://studionatali-ricany.cz/#website",
         "url": "https://studionatali-ricany.cz",
         "name": "Studio Natali",
-        "description": "Kadeřnický salon v Říčanech u Prahy",
+        "description": "Kadeřnice ve Studio Natali v Říčanech u Prahy",
         "publisher": { "@id": "https://studionatali-ricany.cz/#business" },
         "inLanguage": "cs-CZ"
       },
@@ -64,24 +62,24 @@ pageRoutes.get('/', async (c) => {
         "@type": "WebPage",
         "@id": "https://studionatali-ricany.cz/#webpage",
         "url": "https://studionatali-ricany.cz",
-        "name": "Studio Natali – Kadeřnický salon Říčany u Prahy",
+        "name": "Vilma Strakatá – kadeřnice Říčany",
         "isPartOf": { "@id": "https://studionatali-ricany.cz/#website" },
         "about": { "@id": "https://studionatali-ricany.cz/#business" },
-        "description": "Kadeřnictví v Říčanech u Prahy. Natálie a Vilma – střihy, barvení, melíry i keratinová péče. Objednejte se online.",
+        "description": "Kadeřnice Vilma Strakatá v Říčanech u Prahy. Dámské, pánské a dětské služby. Objednávky online.",
         "inLanguage": "cs-CZ"
       },
       {
         "@type": "HairSalon",
         "@id": "https://studionatali-ricany.cz/#business",
         "name": "Studio Natali",
-        "alternateName": "Kadeřnictví Studio Natali Říčany",
-        "description": "Kadeřnictví v Říčanech u Prahy. Natálie a Vilma – dvě kadeřnice s přes 10 lety praxe. Střihy, barvení, melíry, keratinové ošetření, společenské účesy. Objednávky online.",
+        "alternateName": "Kadeřnice Vilma Strakatá – Studio Natali Říčany",
+        "description": "Kadeřnice Vilma Strakatá v Říčanech. Přirozené střihy, barvení a melír v klidném prostředí s individuálním přístupem.",
         "url": "https://studionatali-ricany.cz",
-        "telephone": "+420774889606",
-        "email": "info@studionatali-ricany.cz",
+        "telephone": "+420728814712",
+        "email": "vilmastrakata@gmail.com",
         "contactPoint": {
           "@type": "ContactPoint",
-          "telephone": "+420-774-889-606",
+          "telephone": "+420-728-814-712",
           "contactType": "reservations",
           "areaServed": "CZ",
           "availableLanguage": ["Czech"]
@@ -110,10 +108,11 @@ pageRoutes.get('/', async (c) => {
         ],
         "image": [
           "https://studionatali-ricany.cz/images/hero.png",
+          "https://studionatali-ricany.cz/images/team/vilma.jpg",
           "https://studionatali-ricany.cz/logo.svg"
         ],
         "logo": "https://studionatali-ricany.cz/logo.svg",
-        "priceRange": "250 Kč – 2 000 Kč",
+        "priceRange": "220 Kč – 2 400 Kč",
         "currenciesAccepted": "CZK",
         "paymentAccepted": "Hotovost, Platební karta",
         "sameAs": [
@@ -125,20 +124,8 @@ pageRoutes.get('/', async (c) => {
           { "@type": "City", "name": "Praha-východ" },
           { "@type": "City", "name": "Praha" }
         ],
-        "employee": [
-          {
-            "@type": "Person",
-            "name": "Natálie",
-            "jobTitle": "Majitelka a kadeřnice",
-            "worksFor": { "@id": "https://studionatali-ricany.cz/#business" }
-          },
-          {
-            "@type": "Person",
-            "name": "Vilma Strakatá",
-            "jobTitle": "Kadeřnice – specialistka na barvení",
-            "worksFor": { "@id": "https://studionatali-ricany.cz/#business" }
-          }
-        ],
+        "employee": [{ "@id": "https://studionatali-ricany.cz/#vilma-strakata" }],
+        "founder": { "@id": "https://studionatali-ricany.cz/#vilma-strakata" },
         "potentialAction": {
           "@type": "ReserveAction",
           "target": {
@@ -151,7 +138,7 @@ pageRoutes.get('/', async (c) => {
           },
           "result": {
             "@type": "Reservation",
-            "name": "Rezervace termínu v kadeřnictví"
+            "name": "Rezervace termínu u kadeřnice"
           }
         },
         "hasOfferCatalog": {
@@ -160,51 +147,39 @@ pageRoutes.get('/', async (c) => {
           "itemListElement": [
             {
               "@type": "Offer",
-              "itemOffered": { "@type": "Service", "name": "Dámský střih", "description": "Kompletní střih včetně mytí a foukané" },
-              "price": "400",
-              "priceCurrency": "CZK"
+              "itemOffered": { "@type": "Service", "name": "Styling, regenerace, mytí a foukaná" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "350", "maxPrice": "400", "priceCurrency": "CZK" }
             },
             {
               "@type": "Offer",
-              "itemOffered": { "@type": "Service", "name": "Pánský střih" },
-              "price": "280",
-              "priceCurrency": "CZK"
+              "itemOffered": { "@type": "Service", "name": "Střih" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "560", "maxPrice": "700", "priceCurrency": "CZK" }
             },
             {
               "@type": "Offer",
-              "itemOffered": { "@type": "Service", "name": "Dětský střih", "description": "Pro děti do 12 let" },
-              "price": "250",
-              "priceCurrency": "CZK"
-            },
-            {
-              "@type": "Offer",
-              "itemOffered": { "@type": "Service", "name": "Barvení – krátké vlasy" },
-              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "800", "priceCurrency": "CZK" }
-            },
-            {
-              "@type": "Offer",
-              "itemOffered": { "@type": "Service", "name": "Barvení – dlouhé vlasy" },
-              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "1200", "priceCurrency": "CZK" }
+              "itemOffered": { "@type": "Service", "name": "Barva" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "1200", "maxPrice": "1800", "priceCurrency": "CZK" }
             },
             {
               "@type": "Offer",
               "itemOffered": { "@type": "Service", "name": "Melír" },
-              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "1500", "priceCurrency": "CZK" }
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "1300", "maxPrice": "2400", "priceCurrency": "CZK" }
             },
             {
               "@type": "Offer",
-              "itemOffered": { "@type": "Service", "name": "Balayage" },
-              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "1800", "priceCurrency": "CZK" }
+              "itemOffered": { "@type": "Service", "name": "Pánský střih" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "290", "maxPrice": "350", "priceCurrency": "CZK" }
             },
             {
               "@type": "Offer",
-              "itemOffered": { "@type": "Service", "name": "Keratinové ošetření", "description": "Hloubková regenerace vlasů" },
-              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "2000", "priceCurrency": "CZK" }
+              "itemOffered": { "@type": "Service", "name": "Pánský střih + styling" },
+              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "390", "maxPrice": "530", "priceCurrency": "CZK" }
             },
             {
               "@type": "Offer",
-              "itemOffered": { "@type": "Service", "name": "Společenský účes" },
-              "priceSpecification": { "@type": "PriceSpecification", "minPrice": "800", "priceCurrency": "CZK" }
+              "itemOffered": { "@type": "Service", "name": "Střih strojkem" },
+              "price": "220",
+              "priceCurrency": "CZK"
             }
           ]
         },
@@ -216,6 +191,17 @@ pageRoutes.get('/', async (c) => {
         }
       },
       {
+        "@type": "Person",
+        "@id": "https://studionatali-ricany.cz/#vilma-strakata",
+        "name": "Vilma Strakatá",
+        "jobTitle": "Kadeřnice",
+        "worksFor": { "@id": "https://studionatali-ricany.cz/#business" },
+        "image": "https://studionatali-ricany.cz/images/team/vilma.jpg",
+        "telephone": "+420728814712",
+        "email": "vilmastrakata@gmail.com",
+        "knowsAbout": ["Střih", "Styling", "Regenerace vlasů", "Barvení vlasů", "Melír"]
+      },
+      {
         "@type": "FAQPage",
         "@id": "https://studionatali-ricany.cz/#faq",
         "mainEntity": [
@@ -224,7 +210,7 @@ pageRoutes.get('/', async (c) => {
             "name": "Jak si rezervovat termín v Studio Natali?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Termín lze rezervovat online na studionatali-ricany.cz/rezervace – vyberete kadeřnici, službu, datum a čas a zadáte kontaktní údaje. Kadeřnice rezervaci potvrdí e-mailem. Alternativně volejte +420 774 889 606."
+              "text": "Termín lze rezervovat online na studionatali-ricany.cz/rezervace nebo telefonicky na +420 728 814 712."
             }
           },
           {
@@ -237,10 +223,10 @@ pageRoutes.get('/', async (c) => {
           },
           {
             "@type": "Question",
-            "name": "Jaká je provozní doba kadeřnictví?",
+            "name": "Jaká je pracovní doba kadeřnice?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Vilma Strakatá přijímá zákazníky pondělí až pátek 9:00–17:00 (přestávka 12:00–12:30). O víkendu je salon zavřený. Natálie se domlouvá individuálně přes Facebook nebo telefon."
+              "text": "Vilma Strakatá přijímá zákazníky pondělí až pátek 9:00–17:00 (přestávka 12:00–12:30). O víkendu je salon zavřený."
             }
           },
           {
@@ -248,7 +234,7 @@ pageRoutes.get('/', async (c) => {
             "name": "Kolik stojí dámský střih v Říčanech v Studio Natali?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Dámský střih (včetně mytí a foukané) stojí 400 Kč. Pánský střih 280 Kč, dětský střih (do 12 let) 250 Kč."
+              "text": "Střih, mytí, regenerace, styling a foukaná stojí podle náročnosti 560–700 Kč. Samotné mytí, regenerace, styling a foukaná stojí 350–400 Kč."
             }
           },
           {
@@ -256,7 +242,7 @@ pageRoutes.get('/', async (c) => {
             "name": "Kolik stojí barvení vlasů?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Barvení krátkých vlasů od 800 Kč, dlouhých od 1 200 Kč. Melír od 1 500 Kč, Balayage od 1 800 Kč. Finální cena záleží na délce a hustotě vlasů."
+              "text": "Barva včetně mytí, regenerace, střihu, stylingu a foukané stojí 1200–1800 Kč. Melír včetně kompletní péče stojí 1300–2400 Kč."
             }
           },
           {
@@ -284,8 +270,7 @@ pageRoutes.get('/', async (c) => {
     <SiteLayout showGalleryLink={showGalleryLink} canonical="https://studionatali-ricany.cz/" description={t.common.site_description} structuredData={richStructuredData}>
       <HeroSection />
       <AboutSection />
-      <TeamSection workers={workers} />
-      <ServicesSection categories={activeCategories} />
+      <ServicesSection categories={activeCategories} services={services} />
       <GallerySection images={images} />
       <CTASection />
       <ContactSection />
@@ -295,9 +280,8 @@ pageRoutes.get('/', async (c) => {
 
 // Reservation page
 pageRoutes.get('/rezervace', async (c) => {
-  // Show all active workers (including external) so both Vilma and Natálie appear
   const allWorkers = await db.getWorkers(c.env.DB);
-  const workers = allWorkers.filter(w => w.role !== 'superadmin');
+  const workers = allWorkers.filter(w => w.role !== 'superadmin' && w.slug !== 'natalie');
   const services = await db.getAllServices(c.env.DB);
   const categories = await db.getAllCategories(c.env.DB);
   const workerIdParam = c.req.query('workerId');

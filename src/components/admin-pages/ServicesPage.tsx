@@ -107,7 +107,7 @@ export const AdminServicesPage: FC<ServicesPageProps> = ({ services, categories,
                 <tr class="service-row hover:bg-neutral-50 dark:hover:bg-neutral-700" data-category={s.category_id}>
                   <td class="px-6 py-4">
                     <div class="font-medium text-neutral-900 dark:text-white">{s.name}</div>
-                    <div class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-1">{s.description}</div>
+                    <div class="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-1">{s.description || '—'}</div>
                   </td>
                   <td class="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400">{category?.name || '-'}</td>
                   <td class="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400">{worker?.name || '-'}</td>
@@ -143,8 +143,9 @@ export const AdminServicesPage: FC<ServicesPageProps> = ({ services, categories,
                 <input type="text" id="service-name" class="form-input" required />
               </div>
               <div>
-                <label class="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">Popis</label>
-                <textarea id="service-description" class="form-input" rows={2}></textarea>
+                <label class="block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-300">Podnadpis služby</label>
+                <textarea id="service-description" class="form-input" rows={2} placeholder="Včetně: střih + styling + regenerace + mytí + foukaná"></textarea>
+                <p class="text-xs text-neutral-500 mt-1">Zobrazuje se pod názvem služby na webu i v rezervacích.</p>
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -285,9 +286,13 @@ export const AdminServicesPage: FC<ServicesPageProps> = ({ services, categories,
         async function saveService(e) {
           e.preventDefault();
           const id = document.getElementById('service-id').value;
+          const rawSubtitle = document.getElementById('service-description').value.trim();
+          const normalizedSubtitle = rawSubtitle
+            ? (/^včetně:/i.test(rawSubtitle) ? rawSubtitle : 'Včetně: ' + rawSubtitle)
+            : '';
           const data = {
             name: document.getElementById('service-name').value,
-            description: document.getElementById('service-description').value,
+            description: normalizedSubtitle,
             category_id: parseInt(document.getElementById('service-category').value),
             user_id: parseInt(document.getElementById('service-worker').value),
             price: parseInt(document.getElementById('service-price').value),

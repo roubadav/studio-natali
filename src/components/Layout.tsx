@@ -1,4 +1,5 @@
 import type { FC, PropsWithChildren } from 'hono/jsx';
+import { raw } from 'hono/html';
 import { getTranslations } from '../lib/i18n';
 
 const t = getTranslations();
@@ -19,6 +20,7 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
   const pageTitle = title || t.common.site_title;
   const pageDescription = description || t.common.site_description;
   const pageOgImage = ogImage || 'https://studionatali-ricany.cz/images/hero.png';
+  const assetVersion = '20260310-5';
   
   // Local Business structured data (default for all pages)
   const localBusinessSchema = {
@@ -27,8 +29,8 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
     "name": "Studio Natali",
     "description": pageDescription,
     "url": "https://studionatali-ricany.cz",
-    "telephone": "+420774889606",
-    "email": "info@studionatali-ricany.cz",
+    "telephone": "+420728814712",
+    "email": "vilmastrakata@gmail.com",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "Černokostelecká 80/42",
@@ -47,7 +49,7 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
     ],
     "image": "https://studionatali-ricany.cz/images/hero.png",
     "logo": "https://studionatali-ricany.cz/logo.svg",
-    "priceRange": "250 Kč – 2 000 Kč",
+    "priceRange": "220 Kč – 2 400 Kč",
     "sameAs": [
       "https://www.facebook.com/StudioNatali",
       "https://instagram.com/studionatali"
@@ -59,6 +61,8 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
   };
 
   return (
+    <>
+    {raw('<!DOCTYPE html>')}
     <html lang="cs">
       <head>
         <meta charset="UTF-8" />
@@ -103,20 +107,10 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/logo.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/logo.svg" />
+        <link rel="preload" as="image" href="/logo.svg" fetchpriority="high" />
         
-        {/* Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
-        
-        {/* HTMX - loaded async for perf */}
-        <script src="https://unpkg.com/htmx.org@2.0.0" defer></script>
-        
-        {/* Flatpickr CSS - loaded before custom styles so overrides work */}
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
-
         {/* Tailwind CSS (compiled) */}
-        <link rel="stylesheet" href={`/styles.css?v=${Date.now()}`} />
+        <link rel="stylesheet" href={`/styles.css?v=${assetVersion}`} />
         
         {/* Custom Styles */}
         <style dangerouslySetInnerHTML={{ __html: `
@@ -177,7 +171,7 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
           .btn { 
             display: inline-flex; align-items: center; justify-content: center;
             padding: 0.75rem 1.5rem; font-weight: 500; border-radius: 0.5rem;
-            transition: all 0.2s; cursor: pointer;
+            transition: all 0.2s; cursor: pointer; white-space: nowrap;
           }
           .btn-primary { 
             background: #171717; color: white; 
@@ -198,14 +192,6 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
           
           .btn-cta {
             position: relative;
-            animation: btnGlow 2s ease-in-out infinite;
-          }
-          .btn-cta:disabled {
-            animation: none;
-          }
-          @keyframes btnGlow {
-            0%, 100% { box-shadow: 0 0 4px rgba(184,147,106,0.3), 0 0 8px rgba(184,147,106,0.15); }
-            50% { box-shadow: 0 0 8px rgba(184,147,106,0.6), 0 0 20px rgba(184,147,106,0.3), 0 0 30px rgba(184,147,106,0.1); }
           }
           
           .section { padding: 4rem 0; background-color: var(--color-bg-base); }
@@ -410,9 +396,6 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
             backface-visibility: hidden;
           }
           
-          .htmx-request .htmx-indicator { display: inline-block !important; }
-          .htmx-indicator { display: none; }
-
           /* Blob Masks */
           .blob-mask-1 { clip-path: polygon(8% 5%, 20% 2%, 35% 0%, 50% 3%, 65% 1%, 80% 4%, 92% 8%, 97% 20%, 100% 35%, 98% 50%, 100% 65%, 96% 80%, 90% 92%, 80% 97%, 65% 100%, 50% 98%, 35% 100%, 20% 96%, 8% 90%, 3% 78%, 0% 65%, 2% 50%, 0% 35%, 4% 20%); }
           .blob-mask-2 { clip-path: polygon(10% 0%, 25% 3%, 40% 0%, 55% 4%, 70% 0%, 85% 5%, 95% 12%, 100% 28%, 97% 45%, 100% 60%, 95% 75%, 100% 90%, 90% 100%, 75% 97%, 60% 100%, 45% 96%, 30% 100%, 15% 95%, 5% 88%, 0% 72%, 5% 55%, 0% 40%, 5% 25%, 0% 12%); }
@@ -433,6 +416,33 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
           .blob-frame.no-overlay::after {
             content: none;
             display: none;
+          }
+          .hero-blob {
+            box-shadow: 0 18px 44px rgba(17, 24, 39, 0.18);
+            transform: translateZ(0);
+          }
+          .hero-blob img {
+            filter: saturate(0.95) contrast(1.05) brightness(0.98);
+          }
+          .hero-blob::before {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.24) 0%, rgba(203, 213, 225, 0.22) 58%, transparent 100%);
+          }
+          .hero-blob::after {
+            box-shadow: inset 0 0 24px rgba(15, 23, 42, 0.14), 0 10px 26px rgba(15, 23, 42, 0.14);
+          }
+          @media (prefers-color-scheme: dark) {
+            .hero-blob {
+              box-shadow: 0 22px 52px rgba(0, 0, 0, 0.5);
+            }
+            .hero-blob img {
+              filter: saturate(0.9) contrast(1.12) brightness(0.88);
+            }
+            .hero-blob::before {
+              background: linear-gradient(145deg, rgba(241, 245, 249, 0.12) 0%, rgba(147, 197, 253, 0.12) 58%, transparent 100%);
+            }
+            .hero-blob::after {
+              box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.34), 0 10px 30px rgba(0, 0, 0, 0.46);
+            }
           }
 
           .legal-content {
@@ -456,175 +466,10 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
             box-shadow: 0 6px 20px rgba(0,0,0,0.06);
           }
 
-          /* Flatpickr custom theme */
-          .flatpickr-calendar {
-            border-radius: 0.75rem;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
-            border: 1px solid var(--color-border);
-            background: var(--color-bg-card);
-            font-family: 'Nunito Sans', system-ui, sans-serif;
-            padding: 4px;
-            width: 307px;
-          }
-          .flatpickr-months {
-            padding: 8px 8px 4px;
-          }
-          .flatpickr-months .flatpickr-month {
-            height: 36px;
-          }
-          .flatpickr-current-month {
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: var(--color-text);
-            padding-top: 4px;
-          }
-          .flatpickr-current-month .flatpickr-monthDropdown-months,
-          .flatpickr-current-month input.cur-year {
-            color: var(--color-text);
-            font-weight: 600;
-          }
-          .flatpickr-months .flatpickr-prev-month,
-          .flatpickr-months .flatpickr-next-month {
-            color: var(--color-text-muted);
-            fill: var(--color-text-muted);
-            padding: 6px 14px;
-            top: 12px;
-          }
-          .flatpickr-months .flatpickr-prev-month:hover,
-          .flatpickr-months .flatpickr-next-month:hover {
-            color: var(--color-primary);
-            fill: var(--color-primary);
-          }
-          .flatpickr-months .flatpickr-prev-month svg,
-          .flatpickr-months .flatpickr-next-month svg {
-            width: 12px;
-            height: 12px;
-          }
-          span.flatpickr-weekday {
-            color: var(--color-text-muted);
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-          }
-          .flatpickr-day {
-            color: var(--color-text);
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            max-width: 38px;
-            height: 38px;
-            line-height: 38px;
-            margin: 1px;
-          }
-          .flatpickr-day:hover {
-            background: var(--color-bg-secondary);
-            border-color: var(--color-border);
-          }
-          .flatpickr-day.today {
-            border-color: var(--color-primary);
-          }
-          .flatpickr-day.today:hover {
-            background: var(--color-primary);
-            color: white;
-            border-color: var(--color-primary);
-          }
-          .flatpickr-day.selected,
-          .flatpickr-day.selected:hover {
-            background: var(--color-primary);
-            border-color: var(--color-primary);
-            color: white;
-          }
-          .flatpickr-day.flatpickr-disabled,
-          .flatpickr-day.flatpickr-disabled:hover,
-          .flatpickr-day.prevMonthDay,
-          .flatpickr-day.nextMonthDay {
-            color: var(--color-text-muted);
-            opacity: 0.4;
-          }
-          .flatpickr-innerContainer {
-            padding: 0 10px 8px;
-          }
-          .dayContainer {
-            width: 285px;
-            min-width: 285px;
-            max-width: 285px;
-          }
-          .flatpickr-rContainer {
-            width: 285px;
-          }
-          .flatpickr-days {
-            width: 285px;
-          }
-          .flatpickr-weekdays {
-            padding: 0 2px;
-          }
-          /* Alt input placeholder styling */
-          input.flatpickr-input[readonly] + input.form-input {
-            cursor: pointer;
-          }
-          @media (prefers-color-scheme: dark) {
-            .flatpickr-calendar {
-              background: #262626;
-              border-color: #404040;
-              box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4);
-            }
-            .flatpickr-current-month {
-              color: #f5f5f5;
-            }
-            .flatpickr-current-month .flatpickr-monthDropdown-months,
-            .flatpickr-current-month input.cur-year {
-              color: #f5f5f5;
-              background: #262626;
-            }
-            .flatpickr-current-month .flatpickr-monthDropdown-months option {
-              background: #262626;
-              color: #f5f5f5;
-            }
-            .flatpickr-months .flatpickr-prev-month,
-            .flatpickr-months .flatpickr-next-month {
-              color: #b5b5b5;
-              fill: #b5b5b5;
-            }
-            .flatpickr-months .flatpickr-prev-month:hover,
-            .flatpickr-months .flatpickr-next-month:hover {
-              color: #dcc9ad;
-              fill: #dcc9ad;
-            }
-            span.flatpickr-weekday {
-              color: #b5b5b5;
-            }
-            .flatpickr-day {
-              color: #f5f5f5;
-            }
-            .flatpickr-day:hover {
-              background: #404040;
-              border-color: #525252;
-            }
-            .flatpickr-day.today:not(.selected) {
-              border-color: #b8936a;
-              color: #dcc9ad;
-            }
-            .flatpickr-day.selected,
-            .flatpickr-day.selected:hover {
-              background: #b8936a;
-              border-color: #b8936a;
-              color: #171717;
-            }
-            .flatpickr-day.flatpickr-disabled,
-            .flatpickr-day.flatpickr-disabled:hover,
-            .flatpickr-day.prevMonthDay,
-            .flatpickr-day.nextMonthDay {
-              color: #737373;
-            }
-          }
         `}} />
         
-        {/* Flatpickr - custom date picker */}
-        <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" defer></script>
-        <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/cs.js" defer></script>
-
         {/* Lucide Icons - self-hosted subset (49 icons, ~9KB) */}
-        <script src="/lucide-icons.js" defer></script>
+        <script src={`/lucide-icons.js?v=${assetVersion}`} defer></script>
       </head>
       <body class="antialiased">
         {children}
@@ -638,44 +483,17 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
             }
           }
           
-          document.addEventListener('DOMContentLoaded', () => {
-            initLucide();
-
-            // Initialize Flatpickr on all date inputs
-            function initFlatpickr() {
-              if (typeof flatpickr === 'undefined') {
-                requestAnimationFrame(initFlatpickr);
-                return;
-              }
-              if (flatpickr.l10ns && flatpickr.l10ns.cs) {
-                flatpickr.localize(flatpickr.l10ns.cs);
-              }
-              document.querySelectorAll('input[type="date"]').forEach(function(el) {
-                if (el._flatpickr) return;
-                var existingVal = el.value;
-                var placeholderText = el.getAttribute('placeholder') || 'Vyberte datum…';
-                var fp = flatpickr(el, {
-                  dateFormat: 'Y-m-d',
-                  altInput: true,
-                  altFormat: 'j. n. Y',
-                  allowInput: false,
-                  disableMobile: true,
-                  onChange: function(selectedDates, dateStr) {
-                    el.value = dateStr;
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                  }
-                });
-                // Set placeholder on the visible alt input
-                if (fp.altInput) {
-                  fp.altInput.setAttribute('placeholder', placeholderText);
-                }
-                if (existingVal) fp.setDate(existingVal, false);
-              });
+          function scheduleLucideInit() {
+            if ('requestIdleCallback' in window) {
+              requestIdleCallback(() => initLucide(), { timeout: 1500 });
+            } else {
+              setTimeout(initLucide, 250);
             }
-            initFlatpickr();
-            window._initFlatpickr = initFlatpickr;
-            
+          }
+
+          document.addEventListener('DOMContentLoaded', () => {
+            window.addEventListener('load', scheduleLucideInit, { once: true });
+
             // Intersection Observer for scroll animations
             const observer = new IntersectionObserver((entries) => {
               entries.forEach(entry => {
@@ -724,6 +542,7 @@ export const BaseLayout: FC<PropsWithChildren<SEOProps>> = ({ children, title, d
         ` }} />
       </body>
     </html>
+    </>
   );
 };
 
@@ -743,7 +562,7 @@ export const Header: FC<{ showGalleryLink?: boolean }> = ({ showGalleryLink = tr
         <div class="flex items-center justify-between h-20">
           {/* Logo */}
           <a href="/" class="flex items-center" aria-label="Studio Natali – domovská stránka">
-            <img src="/logo.svg" alt={t.common.site_name} class="h-14 w-auto" width="56" height="56" />
+            <img src="/logo.svg" alt={t.common.site_name} class="h-14 w-auto" width="56" height="56" loading="eager" fetchpriority="high" decoding="sync" />
           </a>
           
           {/* Desktop Nav */}
@@ -808,20 +627,12 @@ export const Footer: FC<{ showGalleryLink?: boolean }> = ({ showGalleryLink = tr
           {/* Brand */}
           <div>
             <a href="/" class="inline-block mb-6">
-              <img src="/logo.svg" alt={t.common.site_name} class="h-12 w-auto dark:hidden" />
-              <img src="/logo-white.svg" alt={t.common.site_name} class="h-12 w-auto hidden dark:block" />
+              <img src="/logo.svg" alt={t.common.site_name} class="h-12 w-auto dark:hidden" width="48" height="48" loading="lazy" decoding="async" />
+              <img src="/logo-white.svg" alt={t.common.site_name} class="h-12 w-auto hidden dark:block" width="48" height="48" loading="lazy" decoding="async" />
             </a>
-            <p class="text-neutral-600 dark:text-neutral-300 mb-6">
+            <p class="text-neutral-700 dark:text-neutral-200 mb-6">
               {t.footer.description}
             </p>
-            <div class="flex space-x-4">
-              <a href="https://www.facebook.com/StudioNatali" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center hover:bg-primary-600 hover:text-white transition-colors" aria-label="Facebook Studio Natali">
-                <i data-lucide="facebook" class="w-5 h-5"></i>
-              </a>
-              <a href="https://instagram.com/studionatali" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center hover:bg-primary-600 hover:text-white transition-colors" aria-label="Instagram Studio Natali">
-                <i data-lucide="instagram" class="w-5 h-5"></i>
-              </a>
-            </div>
           </div>
           
           {/* Navigation */}
@@ -844,15 +655,15 @@ export const Footer: FC<{ showGalleryLink?: boolean }> = ({ showGalleryLink = tr
             <ul class="space-y-4">
               <li class="flex items-start gap-3">
                 <i data-lucide="map-pin" class="w-5 h-5 text-primary-500 mt-0.5"></i>
-                <span class="text-neutral-600 dark:text-neutral-300">{t.contact.address_line1}<br />{t.contact.address_line2}</span>
+                <span class="text-neutral-700 dark:text-neutral-200">{t.contact.address_line1}<br />{t.contact.address_line2}</span>
               </li>
               <li class="flex items-center gap-3">
                 <i data-lucide="phone" class="w-5 h-5 text-primary-500"></i>
-                <a href="tel:+420774889606" class="text-neutral-600 dark:text-neutral-300 hover:text-primary-600">+420 774 889 606</a>
+                <a href={`tel:${t.contact.phone_value.replace(/\s+/g, '')}`} class="text-neutral-700 dark:text-neutral-200 hover:text-primary-600">{t.contact.phone_value}</a>
               </li>
               <li class="flex items-center gap-3">
                 <i data-lucide="mail" class="w-5 h-5 text-primary-500"></i>
-                <a href="mailto:info@studionatali-ricany.cz" class="text-neutral-600 dark:text-neutral-300 hover:text-primary-600">info@studionatali-ricany.cz</a>
+                <a href={`mailto:${t.contact.email_value}`} class="text-neutral-700 dark:text-neutral-200 hover:text-primary-600">{t.contact.email_value}</a>
               </li>
             </ul>
           </div>
@@ -862,7 +673,7 @@ export const Footer: FC<{ showGalleryLink?: boolean }> = ({ showGalleryLink = tr
             <h3 class="text-lg font-semibold mb-6 text-neutral-900 dark:text-white">{t.footer.hours}</h3>
             <div class="flex items-start gap-3">
               <i data-lucide="clock" class="w-5 h-5 text-primary-500 mt-0.5"></i>
-              <div class="text-neutral-600 dark:text-neutral-300">
+              <div class="text-neutral-700 dark:text-neutral-200">
                 <p>{t.contact.hours_weekdays}</p>
                 <p>{t.contact.hours_weekend}</p>
               </div>
@@ -875,10 +686,10 @@ export const Footer: FC<{ showGalleryLink?: boolean }> = ({ showGalleryLink = tr
       <div class="border-t border-neutral-200 dark:border-neutral-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p class="text-neutral-500 text-sm">© {year} Studio Natali. {t.footer.rights}</p>
+            <p class="text-neutral-700 dark:text-neutral-200 text-sm">© {year} {t.footer.copyright_owner}. {t.footer.rights}</p>
             <div class="flex items-center gap-6 text-sm">
-              <a href="/zpracovani-udaju" class="text-neutral-500 hover:text-primary-600">{t.footer.privacy}</a>
-              <a href="/obchodni-podminky" class="text-neutral-500 hover:text-primary-600">{t.footer.terms}</a>
+              <a href="/zpracovani-udaju" class="text-neutral-700 dark:text-neutral-200 hover:text-primary-600">{t.footer.privacy}</a>
+              <a href="/obchodni-podminky" class="text-neutral-700 dark:text-neutral-200 hover:text-primary-600">{t.footer.terms}</a>
             </div>
           </div>
         </div>

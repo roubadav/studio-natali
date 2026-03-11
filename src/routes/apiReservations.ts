@@ -176,6 +176,7 @@ export function registerReservationRoutes(apiRoutes: Hono<{ Bindings: Env }>) {
         items,
         honeypot,
         lockToken,
+        clientToken,
       } = body;
 
       if (honeypot) {
@@ -218,11 +219,30 @@ export function registerReservationRoutes(apiRoutes: Hono<{ Bindings: Env }>) {
         totalDuration += service.duration * item.quantity;
       }
 
-      if (lockToken) {
+      const normalizedClientToken = typeof clientToken === 'string' ? clientToken.trim() : '';
+      const normalizedLockToken = typeof lockToken === 'string' ? lockToken.trim() : lockToken;
+
+      if (typeof normalizedLockToken === 'string' && normalizedLockToken.length > 0) {
         await c.env.DB.prepare(`
         DELETE FROM reservations
         WHERE status = 'locked' AND lock_token = ?
-      `).bind(lockToken).run();
+      `).bind(normalizedLockToken).run();
+      } else if (
+        typeof normalizedLockToken === 'number' ||
+        (typeof normalizedLockToken === 'string' && /^\d+$/.test(normalizedLockToken))
+      ) {
+        const lockReservationId = typeof normalizedLockToken === 'number'
+          ? normalizedLockToken
+          : parseInt(normalizedLockToken, 10);
+        await c.env.DB.prepare(`
+        DELETE FROM reservations
+        WHERE id = ? AND status = 'locked' AND user_id = ? AND date = ? AND start_time = ?
+      `).bind(lockReservationId, workerId, date, time).run();
+      } else if (normalizedClientToken) {
+        await c.env.DB.prepare(`
+        DELETE FROM reservations
+        WHERE status = 'locked' AND lock_token = ?
+      `).bind(normalizedClientToken).run();
       }
 
       const availableSlots = await db.getAvailableSlots(c.env.DB, date, totalDuration, workerId);

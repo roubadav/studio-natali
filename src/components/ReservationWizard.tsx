@@ -5,6 +5,12 @@ import { getTranslations } from '../lib/i18n';
 
 const t = getTranslations();
 
+const categoryIconMap: Record<string, string> = {
+  damske: 'sparkles',
+  panske: 'scissors',
+  detske: 'heart',
+};
+
 // ============ TYPES ============
 interface ReservationWizardProps {
   workers: PublicUser[];
@@ -16,6 +22,7 @@ interface ReservationWizardProps {
 
 // ============ WIZARD LAYOUT ============
 export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, services, categories, bookingWindow, preselectedWorkerId }) => {
+  const assetVersion = '20260311-2';
   const fallbackPhoto = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
       <defs>
@@ -31,9 +38,27 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
     </svg>`
   )}`;
 
+  const bookableWorkers = workers.filter(worker => worker.role !== 'external');
+  const hideWorkerStepInProgress = bookableWorkers.length === 1;
+  const progressSteps = hideWorkerStepInProgress
+    ? [
+        { label: t.reservation.steps.services, step: 2 },
+        { label: t.reservation.steps.datetime, step: 3 },
+        { label: t.reservation.steps.details, step: 4 },
+        { label: t.reservation.steps.confirmation, step: 5 },
+      ]
+    : [
+        { label: t.reservation.steps.worker, step: 1 },
+        { label: t.reservation.steps.services, step: 2 },
+        { label: t.reservation.steps.datetime, step: 3 },
+        { label: t.reservation.steps.details, step: 4 },
+        { label: t.reservation.steps.confirmation, step: 5 },
+      ];
+
   const wizardData = {
     bookingWindow,
     preselectedWorkerId: preselectedWorkerId ?? null,
+    hideWorkerStepInProgress,
     locale: t.common.locale,
     i18n: {
       minutes: t.common.minutes,
@@ -83,13 +108,13 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
   const serializedWizardData = JSON.stringify(wizardData).replace(/</g, '\\u003c');
 
   return (
-    <BaseLayout title={t.reservation.page_title} description="Online rezervace do kadeřnictví Studio Natali v Říčanech u Prahy. Vyberte si kadeřnici, službu a volný termín." canonical="https://studionatali-ricany.cz/rezervace" noindex={false}>
+    <BaseLayout title={t.reservation.page_title} description="Online rezervace ke kadeřnici Vilmě Strakaté v Říčanech u Prahy. Vyberte si službu a volný termín." canonical="https://studionatali-ricany.cz/rezervace" noindex={false}>
       <div class="min-h-screen bg-accent-cream dark:bg-neutral-900">
         {/* Header */}
         <header class="bg-white dark:bg-neutral-800 shadow-sm">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
             <a href="/" class="flex items-center">
-              <img src="/logo.svg" alt={t.common.site_name} class="h-12" />
+              <img src="/logo.svg" alt={t.common.site_name} class="h-12 w-auto" width="48" height="48" loading="eager" decoding="async" />
             </a>
             <a href="/" class="text-sm text-neutral-600 dark:text-neutral-400 hover:text-primary-600">
               ← {t.common.back_to_site}
@@ -101,16 +126,16 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
         <div class="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex items-center justify-center gap-2 sm:gap-4" id="progress-steps">
-              {[t.reservation.steps.worker, t.reservation.steps.services, t.reservation.steps.datetime, t.reservation.steps.details, t.reservation.steps.confirmation].map((label, idx) => (
-                <div class={`step-item flex items-center gap-2 ${idx === 0 ? 'active' : ''}`} data-step={idx + 1}>
+              {progressSteps.map((item, idx) => (
+                <div class={`step-item flex items-center gap-2 ${idx === 0 ? 'active' : ''}`} data-step={item.step}>
                   <div class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium step-circle
                     ${idx === 0 ? 'bg-primary-600 text-white' : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400'}`}>
                     {idx + 1}
                   </div>
                   <span class="hidden sm:block text-sm font-medium text-neutral-600 dark:text-neutral-400 step-label">
-                    {label}
+                    {item.label}
                   </span>
-                  {idx < 4 && <div class="w-8 h-px bg-neutral-300 dark:bg-neutral-600 hidden sm:block" />}
+                  {idx < progressSteps.length - 1 && <div class="w-8 h-px bg-neutral-300 dark:bg-neutral-600 hidden sm:block" />}
                 </div>
               ))}
             </div>
@@ -124,9 +149,9 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
             <div class="lg:col-span-2">
               {/* Step 1: Worker Selection */}
               <div id="step-1" class="step-content">
-                <div class="flex items-center justify-between mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                   <h2 class="text-2xl font-bold text-neutral-900 dark:text-white">{t.reservation.select_worker}</h2>
-                  <button type="button" class="btn btn-outline" onclick="handleInlineBack()">
+                  <button type="button" class="btn btn-outline whitespace-nowrap self-start sm:self-auto" onclick="handleInlineBack()">
                     ← {t.common.back}
                   </button>
                 </div>
@@ -160,7 +185,6 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
                             </div>
                           </div>
                           <div class="mt-3 ml-20 flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300 font-medium">
-                            <i data-lucide="facebook" class="w-4 h-4"></i>
                             Rezervace pouze přes Facebook
                           </div>
                         </a>
@@ -196,13 +220,13 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
 
               {/* Step 2: Service Selection */}
               <div id="step-2" class="step-content hidden">
-                <div class="flex items-center justify-between mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                   <h2 class="text-2xl font-bold text-neutral-900 dark:text-white">{t.reservation.select_services}</h2>
-                  <div class="flex gap-3">
-                    <button type="button" class="btn btn-outline" onclick="handleInlineBack()">
+                  <div class="flex w-full sm:w-auto gap-2 sm:gap-3">
+                    <button type="button" class="btn btn-outline whitespace-nowrap flex-1 sm:flex-none" onclick="handleInlineBack()">
                       ← {t.common.back}
                     </button>
-                    <button type="button" id="btn-continue-step-2" class="btn btn-primary btn-cta" onclick="nextStep()">
+                    <button type="button" id="btn-continue-step-2" class="btn btn-primary btn-cta whitespace-nowrap flex-1 sm:flex-none" onclick="nextStep()">
                       {t.reservation.continue} →
                     </button>
                   </div>
@@ -211,48 +235,58 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
                   {categories.map(category => {
                     const catServices = services.filter(s => s.category_id === category.id);
                     if (catServices.length === 0) return null;
+                    const categoryIcon = categoryIconMap[category.slug] || category.icon?.toLowerCase() || 'scissors';
                     return (
                       <div class="category-group" data-category={category.id}>
                         <h3 class="text-lg font-semibold text-neutral-800 dark:text-neutral-200 mb-3 flex items-center gap-2">
-                          <i data-lucide={category.icon?.toLowerCase() || 'scissors'} class="w-5 h-5 text-primary-600"></i>
+                          <i data-lucide={categoryIcon} class="w-5 h-5 text-primary-600"></i>
                           {category.name}
                         </h3>
                         <div class="space-y-2">
-                          {catServices.map(service => (
-                            <div
-                              class="service-card card p-4 flex items-center justify-between cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all"
-                              data-service-id={service.id}
-                              data-service-name={service.name}
-                              data-service-price={service.price}
-                              data-service-duration={service.duration}
-                              data-service-price-type={service.price_type}
-                              onclick={`toggleService(${service.id})`}
-                            >
-                              <div class="flex-1">
-                                <h4 class="font-medium text-neutral-900 dark:text-white">{service.name}</h4>
-                                <p class="text-sm text-neutral-500 dark:text-neutral-400">{service.description}</p>
-                                <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                                  {service.duration} {t.common.minutes}
-                                </p>
-                              </div>
-                              <div class="text-right ml-4">
-                                <p class="font-semibold text-primary-600 dark:text-primary-400">
-                                  {service.price_type === 'starts_at' ? t.common.starts_at_prefix : ''}{service.price} {t.common.currency}
-                                </p>
-                                <div class="service-quantity hidden items-center gap-2 mt-2">
-                                  <button type="button" class="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 flex items-center justify-center"
-                                    onclick={`event.stopPropagation(); updateQuantity(${service.id}, -1)`}>
-                                    <i data-lucide="minus" class="w-4 h-4"></i>
-                                  </button>
-                                  <span class="quantity-value font-medium">1</span>
-                                  <button type="button" class="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 flex items-center justify-center"
-                                    onclick={`event.stopPropagation(); updateQuantity(${service.id}, 1)`}>
-                                    <i data-lucide="plus" class="w-4 h-4"></i>
-                                  </button>
+                          {catServices.map(service => {
+                            const subtitle = service.description?.trim()
+                              ? (/^včetně:/i.test(service.description.trim()) ? service.description.trim() : `Včetně: ${service.description.trim()}`)
+                              : '';
+                            return (
+                              <div
+                                class="service-card card p-4 flex items-center justify-between cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all"
+                                data-service-id={service.id}
+                                data-service-name={service.name}
+                                data-service-price={service.price}
+                                data-service-duration={service.duration}
+                                data-service-price-type={service.price_type}
+                                onclick={`toggleService(${service.id})`}
+                              >
+                                <div class="flex-1">
+                                  <h4 class="font-medium text-neutral-900 dark:text-white">{service.name}</h4>
+                                  {subtitle && (
+                                    <p class="text-xs text-primary-700 dark:text-primary-300 mt-1 inline-block px-2 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30">
+                                      {subtitle}
+                                    </p>
+                                  )}
+                                  <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                                    {service.duration} {t.common.minutes}
+                                  </p>
+                                </div>
+                                <div class="text-right ml-4">
+                                  <p class="font-semibold text-primary-600 dark:text-primary-400">
+                                    {service.price_type === 'starts_at' ? t.common.starts_at_prefix : ''}{service.price} {t.common.currency}
+                                  </p>
+                                  <div class="service-quantity hidden items-center gap-2 mt-2">
+                                    <button type="button" class="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 flex items-center justify-center"
+                                      onclick={`event.stopPropagation(); updateQuantity(${service.id}, -1)`}>
+                                      <i data-lucide="minus" class="w-4 h-4"></i>
+                                    </button>
+                                    <span class="quantity-value font-medium">1</span>
+                                    <button type="button" class="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 flex items-center justify-center"
+                                      onclick={`event.stopPropagation(); updateQuantity(${service.id}, 1)`}>
+                                      <i data-lucide="plus" class="w-4 h-4"></i>
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -262,13 +296,13 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
 
               {/* Step 3: Date & Time Selection */}
               <div id="step-3" class="step-content hidden">
-                <div class="flex items-center justify-between mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                   <h2 class="text-2xl font-bold text-neutral-900 dark:text-white">{t.reservation.select_datetime}</h2>
-                  <div class="flex gap-3">
-                    <button type="button" class="btn btn-outline" onclick="handleInlineBack()">
+                  <div class="flex w-full sm:w-auto gap-2 sm:gap-3">
+                    <button type="button" class="btn btn-outline whitespace-nowrap flex-1 sm:flex-none" onclick="handleInlineBack()">
                       ← {t.common.back}
                     </button>
-                    <button type="button" id="btn-continue-step-3" class="btn btn-primary btn-cta" onclick="nextStep()">
+                    <button type="button" id="btn-continue-step-3" class="btn btn-primary btn-cta whitespace-nowrap flex-1 sm:flex-none" onclick="nextStep()">
                       {t.reservation.continue} →
                     </button>
                   </div>
@@ -320,13 +354,13 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
 
               {/* Step 4: Contact Info */}
               <div id="step-4" class="step-content hidden">
-                <div class="flex items-center justify-between mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                   <h2 class="text-2xl font-bold text-neutral-900 dark:text-white">{t.reservation.your_details}</h2>
-                  <div class="flex gap-3">
-                    <button type="button" class="btn btn-outline" onclick="handleInlineBack()">
+                  <div class="flex w-full sm:w-auto gap-2 sm:gap-3">
+                    <button type="button" class="btn btn-outline whitespace-nowrap flex-1 sm:flex-none" onclick="handleInlineBack()">
                       ← {t.common.back}
                     </button>
-                    <button type="button" id="btn-continue-step-4" class="btn btn-primary btn-cta" onclick="nextStep()">
+                    <button type="button" id="btn-continue-step-4" class="btn btn-primary btn-cta whitespace-nowrap flex-1 sm:flex-none" onclick="nextStep()">
                       {t.reservation.continue} →
                     </button>
                   </div>
@@ -364,9 +398,9 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
 
               {/* Step 5: Confirmation */}
               <div id="step-5" class="step-content hidden">
-                <div class="flex items-center justify-between mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                   <h2 class="text-2xl font-bold text-neutral-900 dark:text-white">{t.reservation.confirmation_title}</h2>
-                  <button type="button" class="btn btn-outline" onclick="handleInlineBack()">
+                  <button type="button" class="btn btn-outline whitespace-nowrap self-start sm:self-auto" onclick="handleInlineBack()">
                     ← {t.common.back}
                   </button>
                 </div>
@@ -452,7 +486,7 @@ export const ReservationWizard: FC<ReservationWizardProps> = ({ workers, service
 
       {/* Reservation Wizard Script */}
       <script dangerouslySetInnerHTML={{ __html: `window.__RESERVATION_WIZARD__ = ${serializedWizardData};` }} />
-      <script src="/reservation-wizard.js" defer></script>
+      <script src={`/reservation-wizard.js?v=${assetVersion}`} defer></script>
     </BaseLayout>
   );
 };

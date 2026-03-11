@@ -53,7 +53,7 @@ let cart = []; // { id, name, price, duration, priceType, quantity }
 let selectedDate = null;
 let selectedTime = null;
 let currentMonth = new Date();
-let lockToken = null;
+let lockToken = null; // Client lock token returned by /api/reservations/lock
 let availabilityDates = new Set();
 let availabilityLoaded = false;
 let reservationCompleted = false;
@@ -92,12 +92,15 @@ function formatDateLocal(date) {
 }
 
 // Unlock reservation on page close if not completed
-window.addEventListener('beforeunload', async (e) => {
+window.addEventListener('beforeunload', () => {
   if (lockToken && !reservationCompleted) {
     // Use sendBeacon for reliable unlock on page close
-    const token = getClientToken();
-    const data = JSON.stringify({ reservationId: lockToken, clientToken: token });
-    navigator.sendBeacon('/api/reservations/unlock', data);
+    const payload = JSON.stringify({ clientToken: lockToken });
+    if (typeof Blob !== 'undefined') {
+      navigator.sendBeacon('/api/reservations/unlock', new Blob([payload], { type: 'application/json' }));
+    } else {
+      navigator.sendBeacon('/api/reservations/unlock', payload);
+    }
   }
 });
 
@@ -619,7 +622,8 @@ function selectTime(time) {
 // Step Navigation
 function updateSteps() {
   document.querySelectorAll('.step-item').forEach((el, idx) => {
-    const stepNum = idx + 1;
+    const stepNum = Number(el.dataset.step) || (idx + 1);
+    const displayStepNum = idx + 1;
     const circle = el.querySelector('.step-circle');
 
     if (stepNum < currentStep) {
@@ -627,10 +631,10 @@ function updateSteps() {
       circle.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
     } else if (stepNum === currentStep) {
       circle.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium step-circle bg-primary-600 text-white';
-      circle.textContent = stepNum;
+      circle.textContent = displayStepNum;
     } else {
       circle.className = 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium step-circle bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400';
-      circle.textContent = stepNum;
+      circle.textContent = displayStepNum;
     }
   });
   if (window.lucide) {
@@ -742,7 +746,7 @@ async function clearLockIfNeeded() {
     await fetch('/api/reservations/unlock', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reservationId: lockToken, clientToken: getClientToken() })
+      body: JSON.stringify({ clientToken: lockToken })
     });
   } finally {
     lockToken = null;
@@ -799,7 +803,7 @@ async function nextStep() {
         return;
       }
 
-      lockToken = data.reservationId;
+      lockToken = data.lockToken || token;
       lockExpiresAt = data.expiresAt || null;
       if (lockTimerId) clearTimeout(lockTimerId);
       if (lockExpiresAt) {
@@ -928,6 +932,7 @@ async function submitReservation() {
         note: document.getElementById('customer-note').value,
         termsAccepted: document.getElementById('terms-accepted').checked,
         lockToken: lockToken,
+        clientToken: getClientToken(),
         items: cart.map(item => ({ serviceId: item.id, quantity: item.quantity })),
         honeypot: document.getElementById('honeypot').value
       })
@@ -950,9 +955,14 @@ async function submitReservation() {
     for (let i = 1; i <= 5; i++) {
       document.getElementById('step-' + i).classList.add('hidden');
     }
-    document.getElementById('step-success').classList.remove('hidden');
-    document.getElementById('step-navigation').classList.add('hidden');
-    document.getElementById('progress-steps').classList.add('hidden');
+    const successStep = document.getElementById('step-success');
+    if (successStep) successStep.classList.remove('hidden');
+
+    const stepNavigation = document.getElementById('step-navigation');
+    if (stepNavigation) stepNavigation.classList.add('hidden');
+
+    const progressSteps = document.getElementById('progress-steps');
+    if (progressSteps) progressSteps.classList.add('hidden');
 
     if (data.requireVerification) {
       document.getElementById('success-message').textContent = i18n.verificationMessage;

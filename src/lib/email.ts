@@ -35,7 +35,7 @@ export class EmailService {
   }
 
   private async sendWithResend(options: EmailOptions): Promise<boolean> {
-    const fromAddress = this.env.SMTP_FROM || 'Studio Natali <info@studionatali-ricany.cz>';
+    const fromAddress = this.env.SMTP_FROM || 'Studio Natali <vilmastrakata@gmail.com>';
 
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -112,7 +112,7 @@ function emailLayout(title: string, bodyContent: string): string {
           <tr>
             <td style="padding: 20px 32px 28px; border-top: 1px solid #ede8e0; font-size: 12px; color: #999999; text-align: center; line-height: 1.6;">
               <p style="margin: 0 0 6px;">Studio Natali &middot; Černokostelecká 80/42 &middot; 251 01 Říčany u Prahy</p>
-              <p style="margin: 0 0 6px;">Tel: <a href="tel:+420774889606" style="color: #999;">+420 774 889 606</a> &middot; <a href="mailto:info@studionatali-ricany.cz" style="color: #999;">info@studionatali-ricany.cz</a></p>
+              <p style="margin: 0 0 6px;">Tel: <a href="tel:+420728814712" style="color: #999;">+420 728 814 712</a> &middot; <a href="mailto:vilmastrakata@gmail.com" style="color: #999;">vilmastrakata@gmail.com</a></p>
               <p style="margin: 0;"><a href="https://studionatali-ricany.cz" style="color: #8a654b;">studionatali-ricany.cz</a></p>
             </td>
           </tr>

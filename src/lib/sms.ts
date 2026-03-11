@@ -184,7 +184,7 @@ export class SMSService {
 export function smsReservationConfirmed(customerName: string, date: string, time: string): string {
   // Keep under 160 chars for single SMS
   const name = customerName.split(' ')[0]; // First name only
-  return `${name}, Vaše rezervace v Studio Natali na ${date} v ${time} byla potvrzena. Těšíme se na Vás! Info: +420774889606`;
+  return `${name}, Vaše rezervace v Studio Natali na ${date} v ${time} byla potvrzena. Těšíme se na Vás! Info: +420728814712`;
 }
 
 /**
@@ -200,7 +200,7 @@ export function smsReservationRejected(customerName: string, date: string): stri
  */
 export function smsReservationReminder(customerName: string, date: string, time: string): string {
   const name = customerName.split(' ')[0];
-  return `Připomínka: ${name}, zítra ${date} v ${time} máte rezervaci v Studio Natali. Adresa: Černokostelecká 80/42, Říčany. Tel: +420774889606`;
+  return `Připomínka: ${name}, zítra ${date} v ${time} máte rezervaci v Studio Natali. Adresa: Černokostelecká 80/42, Říčany. Tel: +420728814712`;
 }
 
 /**

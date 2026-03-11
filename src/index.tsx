@@ -51,12 +51,46 @@ function isLocalRequest(url: string): boolean {
   }
 }
 
+const ROBOTS_TXT = `User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /test
+Disallow: /api/
+Disallow: /partials/
+Allow: /api/agent/
+
+Sitemap: https://studionatali-ricany.cz/sitemap.xml
+`;
+
 // Create app with proper typing
 const app = new Hono<{ Bindings: Env }>();
 
 // Middleware
 app.use('*', logger());
-app.use('*', secureHeaders());
+app.use('*', secureHeaders({
+  strictTransportSecurity: 'max-age=63072000; includeSubDomains; preload',
+  referrerPolicy: 'strict-origin-when-cross-origin',
+  contentSecurityPolicy: {
+    defaultSrc: ["'self'"],
+    baseUri: ["'self'"],
+    objectSrc: ["'none'"],
+    frameAncestors: ["'self'"],
+    formAction: ["'self'"],
+    scriptSrc: ["'self'", "'unsafe-inline'"],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    imgSrc: ["'self'", 'data:', 'https:'],
+    fontSrc: ["'self'", 'data:'],
+    connectSrc: ["'self'"],
+    frameSrc: ['https://www.google.com', 'https://maps.google.com'],
+    upgradeInsecureRequests: [],
+  },
+  permissionsPolicy: {
+    geolocation: ['self'],
+    microphone: [],
+    camera: [],
+    payment: [],
+  },
+}));
 
 // AI agent API – povoleno z libovolné origin (bez cookies)
 app.use('/api/agent/*', cors({
@@ -141,6 +175,7 @@ app.get('/*.js', async (c, next) => {
   await next();
   if (c.res.status === 200) {
     c.res.headers.set('Content-Type', 'application/javascript; charset=utf-8');
+    c.res.headers.set('Cache-Control', 'public, max-age=2592000');
   }
 });
 
@@ -149,7 +184,23 @@ app.get('/*.css', async (c, next) => {
   await next();
   if (c.res.status === 200) {
     c.res.headers.set('Content-Type', 'text/css; charset=utf-8');
+    c.res.headers.set('Cache-Control', 'public, max-age=2592000');
   }
+});
+
+// Improve static media cache headers
+app.use('*', async (c, next) => {
+  await next();
+  if (c.res.status === 200 && /\.(svg|png|jpe?g|webp|ico)$/i.test(c.req.path)) {
+    c.res.headers.set('Cache-Control', 'public, max-age=2592000');
+  }
+});
+
+// Explicit robots response with valid directives
+app.get('/robots.txt', (c) => {
+  c.header('Content-Type', 'text/plain; charset=utf-8');
+  c.header('Cache-Control', 'public, max-age=3600');
+  return c.text(ROBOTS_TXT);
 });
 
 // API Routes
