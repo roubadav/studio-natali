@@ -24,6 +24,11 @@ function htmlToPlainText(html: string): string {
     .trim();
 }
 
+function extractEmailAddress(from: string): string {
+  const match = from.match(/<([^>]+)>/);
+  return (match ? match[1] : from).trim();
+}
+
 export class EmailService {
   private env: Env;
 
@@ -32,19 +37,19 @@ export class EmailService {
   }
 
   async send(options: EmailOptions): Promise<boolean> {
-    // Priority: 1) Cloudflare Email Workers, 2) Resend API, 3) Mock (dev)
+    // Priority: 1) External mail API, 2) Cloudflare Email Workers, 3) Mock (dev)
     let providerConfigured = false;
+
+    if (this.env.EMAIL_API_URL && this.env.EMAIL_API_KEY) {
+      providerConfigured = true;
+      const sentViaApi = await this.sendWithExternalApi(options);
+      if (sentViaApi) return true;
+    }
 
     if (this.env.MAILER) {
       providerConfigured = true;
       const sentViaCloudflare = await this.sendWithCloudflare(options);
       if (sentViaCloudflare) return true;
-    }
-
-    if (this.env.RESEND_API_KEY) {
-      providerConfigured = true;
-      const sentViaResend = await this.sendWithResend(options);
-      if (sentViaResend) return true;
     }
 
     if (providerConfigured) {
@@ -89,35 +94,37 @@ export class EmailService {
     }
   }
 
-  private async sendWithResend(options: EmailOptions): Promise<boolean> {
-    const fromAddress = this.getFromAddress();
+  private async sendWithExternalApi(options: EmailOptions): Promise<boolean> {
+    if (!this.env.EMAIL_API_URL || !this.env.EMAIL_API_KEY) return false;
 
     try {
-      const res = await fetch('https://api.resend.com/emails', {
+      const res = await fetch(this.env.EMAIL_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.env.RESEND_API_KEY}`
+          'x-api-key': this.env.EMAIL_API_KEY,
+          'x-site-origin': this.env.EMAIL_API_ORIGIN || this.env.APP_URL,
         },
         body: JSON.stringify({
-          from: fromAddress,
+          from: extractEmailAddress(this.getFromAddress()),
           to: options.to,
           subject: options.subject,
           html: options.html,
-          reply_to: options.replyTo
+          text: htmlToPlainText(options.html),
+          replyTo: options.replyTo,
         })
       });
 
       if (!res.ok) {
         const error = await res.text();
-        console.error('Resend email failed:', res.status, error);
+        console.error('External email API failed:', res.status, error);
         return false;
       }
 
-      console.log('Email sent via Resend to:', options.to);
+      console.log('Email sent via external API to:', options.to);
       return true;
     } catch (e) {
-      console.error('Resend email error:', e);
+      console.error('External email API error:', e);
       return false;
     }
   }

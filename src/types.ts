@@ -7,7 +7,10 @@ export interface Env {
   MAILER?: SendEmail;
   // Shared sender identity used by email providers
   EMAIL_FROM?: string;
-  RESEND_API_KEY?: string;
+  // External email API (e.g. self-hosted Vercel Mail Hub)
+  EMAIL_API_URL?: string;
+  EMAIL_API_KEY?: string;
+  EMAIL_API_ORIGIN?: string;
   // SMTP Configuration (seznam.cz or other provider)
   SMTP_HOST?: string;
   SMTP_PORT?: string;

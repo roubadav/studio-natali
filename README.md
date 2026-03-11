@@ -31,7 +31,7 @@ Moderní webová aplikace pro kadeřnické studio s rezervačním systémem, adm
 
 *   **Backend:** Hono (Node.js/Cloudflare Workers runtime), D1 Database (SQLite).
 *   **Frontend:** Hono JSX (Server-side rendering), Tailwind CSS, HTMX, Lucide Icons.
-*   **Email:** Vlastní `EmailService` (podpora pro Mock / Resend).
+*   **Email:** Vlastní `EmailService` (externí API / Cloudflare `send_email` / mock fallback).
 *   **Bezpečnost:** Secure headers, HTTP-only cookies, bcrypt hesla, ochrana proti CSRF/XSS (validace vstupů).
 
 ## 📦 Instalace a Spuštění
@@ -108,12 +108,12 @@ Nebo manuálně:
 
 ## 📧 E-maily
 Priorita odesílání je:
-1. `MAILER` (`send_email` binding v Cloudflare Workers)
-2. `RESEND_API_KEY` (fallback provider)
+1. externí API (`EMAIL_API_URL` + `EMAIL_API_KEY`) – doporučeně vlastní Vercel Mail Hub
+2. `MAILER` (`send_email` binding v Cloudflare Workers) jako fallback
 3. Mock log do konzole (jen když není nakonfigurovaný žádný provider)
 
 Pro čistě Cloudflare režim nastavte Email Routing + `send_email` binding.  
-Pozor: Cloudflare Email Workers umí posílat jen na **ověřené destination adresy** v Email Routing (ne libovolně na všechny zákazníky).
+Pozor: Cloudflare Email Workers umí posílat jen na **ověřené destination adresy** v Email Routing (ne libovolně na všechny zákazníky), proto je pro zákaznické maily doporučené externí API.
 
 ## 🔒 Bezpečnostní opatření
 *   **Placeholdery:** V přihlašovacím formuláři odstraněny reálné e-maily.

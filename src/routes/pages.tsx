@@ -31,6 +31,15 @@ export const pageRoutes = new Hono<{ Bindings: Env; Variables: { user: JWTPayloa
 
 const t = getTranslations();
 
+const splitAddressLines = (address: string): string[] => {
+  return address
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\n/g, '\n')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+};
+
 // ============ PUBLIC PAGES ============
 
 // Homepage
@@ -271,7 +280,7 @@ pageRoutes.get('/', async (c) => {
       <HeroSection />
       <AboutSection />
       <ServicesSection categories={activeCategories} services={services} />
-      <GallerySection images={images} />
+      {images.length > 0 ? <GallerySection images={images} /> : null}
       <CTASection />
       <ContactSection />
     </SiteLayout>
@@ -319,11 +328,11 @@ pageRoutes.get('/obchodni-podminky', async (c) => {
   const showGalleryLink = images.length > 0;
   const settingsArray = await db.getAllSettings(c.env.DB);
   const settings = mapSettings(settingsArray);
-  const contactName = settings.salon_name || t.terms.contact_name;
+  const contactName = t.about.contact_name;
   const contactAddress = settings.address || t.terms.contact_address;
-  const contactPhone = settings.phone || t.terms.contact_phone;
-  const contactEmail = settings.contact_email || t.terms.contact_email;
-  const addressLines = contactAddress.split('\n').map(line => line.trim()).filter(Boolean);
+  const contactPhone = t.terms.contact_phone;
+  const contactEmail = t.terms.contact_email;
+  const addressLines = splitAddressLines(contactAddress);
   return c.html(
     <SiteLayout title={t.terms.page_title} showGalleryLink={showGalleryLink} canonical="https://studionatali-ricany.cz/obchodni-podminky" noindex={true}>
       <div class="section">
@@ -366,10 +375,11 @@ pageRoutes.get('/zpracovani-udaju', async (c) => {
   const showGalleryLink = images.length > 0;
   const settingsArray = await db.getAllSettings(c.env.DB);
   const settings = mapSettings(settingsArray);
-  const contactEmail = settings.contact_email || t.terms.contact_email;
-  const contactName = settings.salon_name || t.terms.contact_name;
-  const contactPhone = settings.phone || t.terms.contact_phone;
+  const contactEmail = t.terms.contact_email;
+  const contactName = t.about.contact_name;
+  const contactPhone = t.terms.contact_phone;
   const contactAddress = settings.address || t.terms.contact_address;
+  const addressLines = splitAddressLines(contactAddress);
   return c.html(
     <SiteLayout title={t.privacy.page_title} showGalleryLink={showGalleryLink} canonical="https://studionatali-ricany.cz/zpracovani-udaju" noindex={true}>
       <div class="section">
@@ -397,7 +407,10 @@ pageRoutes.get('/zpracovani-udaju', async (c) => {
                 <h2>{t.privacy.sections.find(section => /kontakt|contact/i.test(section.title))?.title || 'Kontakt'}</h2>
                 <div class="space-y-1">
                   <p class="font-semibold">{contactName}</p>
-                  <p>{contactAddress}</p>
+                  {addressLines.map((line, idx) => (
+                    <p key={`${line}-${idx}`}>{line}</p>
+                  ))}
+                  {addressLines.length === 0 ? <p>{contactAddress}</p> : null}
                   <p>{contactPhone}</p>
                   <p>{contactEmail}</p>
                 </div>

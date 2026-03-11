@@ -14,15 +14,17 @@ routes = [
 [vars]
 JWT_SECRET = "studio-natali-secret-key-change-in-production"
 APP_URL = "https://studionatali-ricany.cz"
-# Shared sender identity (Cloudflare Email Workers + Resend fallback)
+# Shared sender identity (external API + Cloudflare fallback)
 EMAIL_FROM = "Studio Natali <info@studionatali-ricany.cz>"
+EMAIL_API_URL = "https://vercel-mail-hub.vercel.app/api/v1/send"
+EMAIL_API_ORIGIN = "https://studionatali-ricany.cz"
 # Legacy SMTP configuration (optional compatibility)
 SMTP_HOST = "smtp.seznam.cz"
 SMTP_PORT = "465"
 SMTP_USER = "info@studionatali-ricany.cz"
 SMTP_FROM = "Studio Natali <info@studionatali-ricany.cz>"
 # SMTP_PASS is set via: npx wrangler secret put SMTP_PASS
-# RESEND_API_KEY is set via: npx wrangler secret put RESEND_API_KEY
+# EMAIL_API_KEY is set via: npx wrangler secret put EMAIL_API_KEY
 
 [[send_email]]
 name = "MAILER"

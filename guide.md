@@ -1,47 +1,64 @@
-# Cloudflare Email Workers – zavedení v projektu
+# Vercel Mail Hub - stav + co potřebuji od tebe
 
-Tento projekt je připravený na odesílání e-mailů přes Cloudflare Worker binding `MAILER` (`send_email`) s fallbackem na `RESEND_API_KEY`.
+## 1) Co je hotové
 
-## Co je už hotové v kódu
+- `studio-natali` je upravené a nasazené:
+  - právní stránky používají kontakt na Vilmu
+  - adresa s `\n` se správně láme na řádky
+  - sekce `Moje práce` se skryje, když galerie nemá obrázky
+  - e-mail vrstva je přepnutá na vlastní API (`EMAIL_API_URL` + `EMAIL_API_KEY`) s Cloudflare fallbackem
+- Produkční deploy `studio-natali`:
+  - Worker verze: `c815c8e4-100b-4cf6-b043-22fa3ee8f25c`
+- Nový projekt je vytvořen:
+  - `/Volumes/data/Projekty/vercel-mail-hub`
+- Vercel projekt je nasazen a běží na:
+  - `https://vercel-mail-hub.vercel.app`
 
-- `wrangler.toml` obsahuje:
-  - `[[send_email]] name = "MAILER"`
-  - `EMAIL_FROM` v `[vars]`
-- `src/lib/email.ts` nyní odesílá v pořadí:
-  1. Cloudflare Email Workers (`MAILER`)
-  2. Resend (`RESEND_API_KEY`)
-  3. Mock log (jen když není nastaven žádný provider)
-- `src/types.ts` obsahuje typy pro `MAILER` a `EMAIL_FROM`.
+## 2) Aktuální blocker
 
-## Co potřebuji od tebe
+Mail Hub teď vrací `500` kvůli chybějící env proměnné:
 
-1. Potvrdit finální adresu odesílatele (např. `info@studionatali-ricany.cz`) pro `EMAIL_FROM`.
-2. V Cloudflare Email Routing ověřit cílové adresy, na které se má přes Cloudflare posílat.
-3. Rozhodnout:
-   - **A)** Cloudflare jen pro interní notifikace + Resend pro zákazníky (doporučeno),
-   - **B)** jen Cloudflare (omezení viz níže).
+- `DATABASE_URL`
 
-## Důležité omezení Cloudflare
+Bez databáze nejde dokončit bootstrap projektu, klíče ani sender účty.
 
-Cloudflare Email Workers (`send_email`) umí posílat jen na **ověřené destination adresy** v Email Routing.  
-To znamená, že bez externího provideru nelze spolehlivě posílat transakční e-maily na libovolné e-maily zákazníků.
+## 3) Co potřebuji od tebe
 
-## Nastavení v Cloudflare (dashboard)
+1. **Database URL**
+   - Pošli mi produkční `DATABASE_URL` (Neon/Postgres pro Mail Hub).
 
-1. Zapnout **Email Routing** pro doménu.
-2. Přidat a ověřit destination adresy.
-3. Zkontrolovat DNS záznamy (MX/SPF/DKIM/DMARC) podle průvodce Cloudflare.
-4. Nechat nasazený Worker s bindingem `MAILER`.
+2. **SMTP účet(y) pro odesílání**
+   - Pro první sender potřebuji:
+     - `smtpHost`
+     - `smtpPort`
+     - `smtpUser`
+     - `smtpPass` (ideálně app password)
+     - e-mail odesílatele (From)
 
-## Doporučené produkční nastavení
+3. **Potvrzení domén**
+   - Potvrď, že pro Studio Natali máme povolit:
+     - `https://studionatali-ricany.cz`
+     - `https://www.studionatali-ricany.cz`
 
-- `MAILER` používat pro interní notifikace (např. staff/admin).
-- `RESEND_API_KEY` ponechat jako fallback pro zákaznické e-maily.
+## 4) Co udělám hned potom (bez další práce od tebe)
 
-## Ověření po nastavení
+1. Nastavím env ve Vercelu:
+   - `DATABASE_URL`
+   - `MAIL_HUB_ADMIN_TOKEN`
+   - `MAIL_HUB_API_KEY_PEPPER`
+   - `MAIL_HUB_MASTER_KEY`
+2. Spustím SQL bootstrap (`scripts/bootstrap.sql`).
+3. Vytvořím projekt `studio-natali`, povolené origins a sender.
+4. Vygeneruju API klíč pro Studio Natali.
+5. Nastavím `EMAIL_API_KEY` secret ve Cloudflare Workeru.
+6. Udělám end-to-end test odeslání rezervace přes Vercel Mail Hub.
 
-1. Vytvořit test rezervaci.
-2. Ověřit doručení:
-   - zákazníkovi,
-   - kadeřnici/adminu.
-3. Zkontrolovat Worker logy pro případné chyby `Cloudflare email send failed`.
+## 5) Admin API (už připraveno)
+
+- Projekty: `GET/POST /api/admin/projects`
+- Origins: `GET/POST /api/admin/projects/:projectId/origins`
+- Senders: `GET/POST /api/admin/projects/:projectId/senders`
+- API keys: `POST /api/admin/projects/:projectId/keys`
+- Logy + CSV: `GET /api/admin/logs`
+- Záloha: `GET /api/admin/backup`
+- Mazání historie: `DELETE /api/admin/logs?before=<ISO_DATETIME>`
