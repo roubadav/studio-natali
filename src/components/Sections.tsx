@@ -1,6 +1,6 @@
 import type { FC } from 'hono/jsx';
 import { getTranslations } from '../lib/i18n';
-import type { User, GalleryImage, ServiceCategory, ServiceWithCategory } from '../types';
+import type { GalleryImage, ServiceCategory, ServiceWithCategory } from '../types';
 
 const t = getTranslations();
 
@@ -250,86 +250,6 @@ export const ServicesSection: FC<{ categories: ServiceCategory[]; services: Serv
           <a href="/rezervace" class="btn btn-primary btn-cta btn-lg px-8 py-4 text-lg">
             {t.services_section.explore}
           </a>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// ============ TEAM SECTION ============
-
-export const TeamSection: FC<{ workers: Omit<User, 'password_hash'>[] }> = ({ workers }) => {
-  return (
-    <section class="section bg-white dark:bg-neutral-800 animate-on-scroll" id="tym">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-          <h2 class="section-title">{t.team.title}</h2>
-          {t.team.subtitle ? <p class="section-subtitle mx-auto">{t.team.subtitle}</p> : null}
-        </div>
-        
-        <div class={`grid gap-8 mx-auto ${workers.length > 1 ? 'md:grid-cols-2 max-w-4xl' : 'max-w-md'}`}>
-          {workers.map((member, index) => {
-            const phoneHref = member.phone ? member.phone.replace(/\s+/g, '') : '';
-            const hasPublicEmail = member.email.includes('@');
-            return (
-            <div class="bg-accent-cream dark:bg-neutral-700 rounded-2xl overflow-hidden card">
-              {/* Photo with Blob Mask */}
-              <div class="pt-6 px-6">
-                <div class="aspect-[3/4] max-h-56 mx-auto">
-                  {member.image ? (
-                    <BlobImage 
-                      src={member.image} 
-                      alt={member.name} 
-                      variant={(index % 3 + 1) as 1 | 2 | 3}
-                      className="w-full h-full no-overlay"
-                    />
-                  ) : (
-                    <div class={`w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 blob-mask-${index % 3 + 1}`}>
-                      <div class="text-center p-6">
-                        <div class="w-20 h-20 mx-auto mb-3 rounded-full bg-white/70 dark:bg-neutral-800/70 flex items-center justify-center">
-                          <i data-lucide="image" class="w-10 h-10 text-primary-600 dark:text-primary-400"></i>
-                        </div>
-                        <p class="text-primary-800 dark:text-primary-200 font-medium text-sm">{member.name}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Content */}
-              <div class="p-6">
-                <h3 class="text-2xl font-medium text-neutral-900 dark:text-white mb-1">{member.name}</h3>
-                <p class="text-primary-600 dark:text-primary-400 font-medium mb-4">{t.team.role_label}</p>
-                <p class="text-neutral-600 dark:text-neutral-300 mb-4 line-clamp-3">{member.bio}</p>
-
-                <div class="space-y-2 mb-4">
-                  {member.phone && (
-                    <a href={`tel:${phoneHref}`} class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 hover:text-primary-600">
-                      <i data-lucide="phone" class="w-4 h-4"></i>
-                      {member.phone}
-                    </a>
-                  )}
-                  {hasPublicEmail && (
-                    <a href={`mailto:${member.email}`} class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 hover:text-primary-600 break-all">
-                      <i data-lucide="mail" class="w-4 h-4"></i>
-                      {member.email}
-                    </a>
-                  )}
-                </div>
-                
-                {member.role === 'external' ? (
-                  <a href="https://www.facebook.com/StudioNatali" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition-colors" style="background-color: #1877F2;" onmouseover="this.style.backgroundColor='#1565C0'" onmouseout="this.style.backgroundColor='#1877F2'">
-                    Rezervovat přes Facebook
-                  </a>
-                ) : (
-                  <a href={`/rezervace?workerId=${member.id}`} class="btn btn-primary w-full inline-flex items-center justify-center gap-2">
-                    <i data-lucide="calendar" class="w-4 h-4"></i>
-                    {t.team.book_appointment}
-                  </a>
-                )}
-              </div>
-            </div>
-          )})}
         </div>
       </div>
     </section>

@@ -61,10 +61,6 @@ SET name = 'Vilma Strakatá',
     is_active = 1
 WHERE slug = 'vilma';
 
-UPDATE users
-SET is_active = 0
-WHERE slug = 'natalie';
-
 -- Pracovní doba pro Vilmu Strakatou (dynamické user_id podle slugu)
 INSERT OR IGNORE INTO working_hours_templates (user_id, day_of_week, start_time, end_time, break_start, break_end, is_day_off)
 SELECT id, 1, '09:00', '17:00', '12:00', '12:30', 0 FROM users WHERE slug = 'vilma';

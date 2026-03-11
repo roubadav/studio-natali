@@ -8,7 +8,7 @@
   - sekce `Moje práce` se skryje, když galerie nemá obrázky
   - e-mail vrstva je přepnutá na vlastní API (`EMAIL_API_URL` + `EMAIL_API_KEY`) s Cloudflare fallbackem
 - Produkční deploy `studio-natali`:
-  - Worker verze: `c815c8e4-100b-4cf6-b043-22fa3ee8f25c`
+  - Worker verze: `14d277cb-fd5f-435d-8070-36cbfa57b9c6`
 - Nový projekt je vytvořen:
   - `/Volumes/data/Projekty/vercel-mail-hub`
 - Vercel projekt je nasazen a běží na:
@@ -18,6 +18,9 @@
 - V Mail Hubu je vytvořen projekt `studio-natali` + povolené origins:
   - `https://studionatali-ricany.cz`
   - `https://www.studionatali-ricany.cz`
+- V Mail Hubu je připravené i GUI:
+  - `https://vercel-mail-hub.vercel.app/`
+  - přihlášení přes `MAIL_HUB_ADMIN_TOKEN`
 
 ## 2) Aktuální blocker
 

@@ -290,8 +290,12 @@ pageRoutes.get('/', async (c) => {
 // Reservation page
 pageRoutes.get('/rezervace', async (c) => {
   const allWorkers = await db.getWorkers(c.env.DB);
-  const workers = allWorkers.filter(w => w.role !== 'superadmin' && w.slug !== 'natalie');
   const services = await db.getAllServices(c.env.DB);
+  const workerIdsWithServices = new Set(services.map(service => service.user_id));
+  const workers = allWorkers.filter(worker =>
+    worker.role !== 'superadmin' &&
+    (worker.role === 'external' || workerIdsWithServices.has(worker.id))
+  );
   const categories = await db.getAllCategories(c.env.DB);
   const workerIdParam = c.req.query('workerId');
   const preselectedWorkerId = workerIdParam ? parseInt(workerIdParam, 10) : undefined;
